@@ -1,0 +1,43 @@
+.sessionRow { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+.sessionLabel { font-size: 0.85rem; font-weight: 600; color: var(--text-2); }
+.sessionSelect {
+  background: var(--bg-1);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.sessionSelect:focus { outline: none; border-color: var(--red); }
+
+.section {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-2);
+}
+.gate h3 { font-size: 1.1rem; color: var(--text); }
+.gate p { font-size: 0.875rem; }
+
+.empty { text-align: center; padding: 40px 24px; color: var(--text-2); font-size: 0.875rem; }

@@ -1,0 +1,33 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './hooks/useAuth'
+import Navbar from './components/layout/Navbar'
+import Home from './pages/Home'
+import LiveTiming from './pages/LiveTiming'
+import Standings from './pages/Standings'
+import Analytics from './pages/Analytics'
+import Calendar from './pages/Calendar'
+import Circuits from './pages/Circuits'
+import Premium from './pages/Premium'
+import Auth from './pages/Auth'
+import './styles/global.css'
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/live" element={<LiveTiming />} />
+          <Route path="/standings" element={<Standings />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/circuits" element={<Circuits />} />
+          <Route path="/premium" element={<Premium />} />
+          <Route path="/login" element={<Auth />} />
+          <Route path="/signup" element={<Auth />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}

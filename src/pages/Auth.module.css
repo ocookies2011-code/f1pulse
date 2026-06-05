@@ -1,0 +1,51 @@
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse 60% 60% at 50% 30%, rgba(225,6,0,0.06) 0%, transparent 70%);
+}
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-bright);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+}
+.logo {
+  display: block;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin-bottom: 28px;
+}
+.logo span { color: var(--red); }
+
+.tabs { display: flex; gap: 4px; background: var(--bg-2); border-radius: var(--radius); padding: 4px; margin-bottom: 24px; }
+.tab { flex: 1; padding: 8px; border-radius: 6px; font-size: 0.875rem; font-weight: 600; color: var(--text-2); cursor: pointer; transition: all 0.15s; background: none; border: none; font-family: var(--font-display); }
+.tab.active { background: var(--bg-3); color: var(--text); }
+
+.form { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.82rem; font-weight: 600; color: var(--text-2); }
+.field input {
+  background: var(--bg-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  transition: border-color 0.15s;
+}
+.field input:focus { outline: none; border-color: var(--red); }
+.field input::placeholder { color: var(--text-3); }
+
+.error { background: rgba(225,6,0,0.1); border: 1px solid rgba(225,6,0,0.3); border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; color: var(--red); }
+.success { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; color: var(--green); }
+
+.note { text-align: center; font-size: 0.82rem; color: var(--text-2); }
+.switch { background: none; border: none; color: var(--red); font-weight: 600; cursor: pointer; font-family: var(--font-display); font-size: 0.82rem; }

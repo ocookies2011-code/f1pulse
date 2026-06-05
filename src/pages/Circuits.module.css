@@ -1,0 +1,10 @@
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.card {
+  background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px;
+  transition: all 0.15s;
+}
+.card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+.country { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--red); margin-bottom: 6px; }
+.name { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
+.race { font-size: 0.85rem; color: var(--text-2); margin-bottom: 6px; }
+.location { font-size: 0.78rem; color: var(--text-3); }
