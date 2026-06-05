@@ -169,3 +169,24 @@
   .teamShort { display: none; }
   .thLap, .tdLap { display: none; }
 }
+
+/* ── Mini track map (right of timing table) ── */
+.mainAndMap { display:flex; gap:0; max-width:var(--max-w); margin:0 auto; }
+.mainContent { flex:1; min-width:0; }
+.miniMap {
+  width: 300px; flex-shrink:0;
+  background: var(--bg-1); border-left:1px solid var(--border);
+  display:flex; flex-direction:column;
+}
+.miniMapTitle {
+  display:flex; align-items:center; gap:7px;
+  padding:7px 12px; font-size:0.65rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3);
+  border-bottom:1px solid var(--border); background:var(--bg-2);
+}
+.sessionDot2 { width:6px; height:6px; border-radius:50%; background:var(--green); animation:blink 1.3s ease-in-out infinite; flex-shrink:0; }
+.miniMapSvg  { flex:1; background:radial-gradient(ellipse at center, #0f1218 0%, #090c10 100%); min-height:200px; }
+.miniMapLink { padding:7px 12px; font-size:0.72rem; color:var(--red); border-top:1px solid var(--border); text-align:center; transition:opacity 0.12s; }
+.miniMapLink:hover { opacity:0.75; }
+
+@media (max-width:1100px) { .mainAndMap { flex-direction:column; } .miniMap { width:100%; border-left:none; border-top:1px solid var(--border); } }

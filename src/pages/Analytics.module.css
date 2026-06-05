@@ -1,43 +1,29 @@
-.sessionRow { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-.sessionLabel { font-size: 0.85rem; font-weight: 600; color: var(--text-2); }
-.sessionSelect {
-  background: var(--bg-1);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  padding: 8px 14px;
-  cursor: pointer;
+.pickers { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+.pickerWrap { display:flex; flex-direction:column; gap:5px; }
+.pickerLabel { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); }
+.sel {
+  appearance:none; background:var(--bg-2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:8px 32px 8px 12px;
+  font-family:var(--font-display); font-size:0.84rem; color:var(--text);
+  cursor:pointer; min-width:200px; transition:border-color 0.12s;
 }
-.sessionSelect:focus { outline: none; border-color: var(--red); }
+.sel:hover { border-color:var(--border-bright); }
+.sel:focus { outline:none; border-color:rgba(225,6,0,0.4); }
 
-.section {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  margin-bottom: 20px;
-}
-.sectionTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.chartCard { background:var(--bg-1); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
 
-.gate {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--text-2);
-}
-.gate h3 { font-size: 1.1rem; color: var(--text); }
-.gate p { font-size: 0.875rem; }
+.gate { display:flex; align-items:center; gap:12px; padding:24px; background:var(--bg-2); border-radius:var(--radius); }
+.gateText { flex:1; font-size:0.875rem; color:var(--text-2); }
+.empty { padding:48px; text-align:center; color:var(--text-3); font-size:0.875rem; }
 
-.empty { text-align: center; padding: 40px 24px; color: var(--text-2); font-size: 0.875rem; }
+.compareControls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
+
+/* Stint chart */
+.stintWrap { display:flex; flex-direction:column; gap:6px; padding-bottom:24px; position:relative; }
+.stintRow  { display:flex; align-items:center; gap:10px; }
+.stintAcro { font-family:var(--font-mono); font-size:0.78rem; font-weight:700; width:32px; flex-shrink:0; text-align:right; }
+.stintBar  { flex:1; height:20px; background:var(--bg-3); border-radius:3px; position:relative; overflow:visible; }
+.stintSegment { position:absolute; height:100%; border-radius:3px; display:flex; align-items:center; justify-content:center; min-width:8px; cursor:default; }
+.stintLabel { font-size:0.62rem; font-weight:800; color:rgba(0,0,0,0.7); pointer-events:none; }
+.stintLapAxis { position:relative; height:16px; margin-left:42px; }
+.stintLapMark { position:absolute; font-size:0.65rem; color:var(--text-3); transform:translateX(-50%); }

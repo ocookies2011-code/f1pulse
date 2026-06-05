@@ -1,3 +1,4 @@
+import { TeamLogo } from '../lib/teamLogos.jsx'
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Users, ArrowLeft, Globe, MapPin, Calendar, Trophy, Zap } from 'lucide-react'
@@ -98,8 +99,8 @@ function TeamCard({ name, data, champPos, champPts }) {
       <div className={styles.cardAccent} style={{ background: col }} />
       <div className={styles.cardInner}>
         <div className={styles.cardTop}>
-          <div className={styles.teamCircle} style={{ borderColor: col }}>
-            <span className={styles.teamInitial} style={{ color: col }}>{name[0]}</span>
+          <div className={styles.teamCircle} style={{ borderColor: col, background: 'var(--bg-3)' }}>
+            <TeamLogo team={name} size={52} />
           </div>
           {champPos && (
             <div className={styles.champBadge} style={{ borderColor: `${col}40`, color: col }}>

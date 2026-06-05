@@ -82,6 +82,78 @@ function PenaltyCount({ rc }) {
   )
 }
 
+
+function MiniTrackMap({ session, drivers }) {
+  const [positions, setPositions] = useState({})
+  const pollRef = useRef(null)
+
+  const fetchPos = useCallback(async () => {
+    if (!session?.session_key) return
+    try {
+      const supaUrl  = import.meta.env.VITE_SUPABASE_URL
+      const supaAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, { method:'POST', headers:{ Authorization:`Bearer ${supaAnon}` } })
+      let headers = {}
+      if (tokenRes.ok) { const { access_token } = await tokenRes.json(); if (access_token) headers.Authorization = `Bearer ${access_token}` }
+      const now  = new Date(); const from = new Date(now - 8000).toISOString()
+      const res  = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${from}`, { headers })
+      if (!res.ok) return
+      const raw  = await res.json()
+      if (!raw?.length) return
+      const latest = {}
+      for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
+      setPositions(latest)
+    } catch {}
+  }, [session])
+
+  useEffect(() => {
+    fetchPos()
+    pollRef.current = setInterval(fetchPos, 5000)
+    return () => clearInterval(pollRef.current)
+  }, [fetchPos])
+
+  // Normalise to SVG viewBox 0 0 300 200
+  const pts = Object.values(positions)
+  const xs  = pts.map(p=>p.x).filter(Boolean)
+  const ys  = pts.map(p=>p.y).filter(Boolean)
+  const xMin = xs.length ? Math.min(...xs) : 0, xMax = xs.length ? Math.max(...xs) : 1
+  const yMin = ys.length ? Math.min(...ys) : 0, yMax = ys.length ? Math.max(...ys) : 1
+  const toSvg = (p) => ({
+    x: 20 + ((p.x - xMin) / (xMax - xMin || 1)) * 260,
+    y: 20 + (1 - (p.y - yMin) / (yMax - yMin || 1)) * 160,
+  })
+
+  const drvMap = {}
+  for (const d of drivers) drvMap[d.driver_number] = d
+
+  if (!session) return null
+
+  return (
+    <div className={styles.miniMap}>
+      <div className={styles.miniMapTitle}><span className={styles.sessionDot2} /> Track Map</div>
+      <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" className={styles.miniMapSvg}>
+        {/* track outline from location history - dots */}
+        {pts.length === 0 && (
+          <text x="150" y="105" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="11" fontFamily="monospace">No live position data</text>
+        )}
+        {Object.entries(positions).map(([dn, pos]) => {
+          const drv = drvMap[Number(dn)]
+          if (!drv || !pos.x) return null
+          const { x, y } = toSvg(pos)
+          const col = `#${drv.team_colour ?? 'aaaaaa'}`
+          return (
+            <g key={dn}>
+              <circle cx={x} cy={y} r={5} fill={col} opacity="0.9" />
+              <text x={x} y={y-7} textAnchor="middle" fill="#fff" fontSize="7" fontWeight="700" fontFamily="monospace">{drv.name_acronym}</text>
+            </g>
+          )
+        })}
+      </svg>
+      <Link to="/trackmap" className={styles.miniMapLink}>Full track map →</Link>
+    </div>
+  )
+}
+
 export default function LiveTiming() {
   const { isPremium } = useAuth()
   const [standings,   setStandings]   = useState([])
@@ -319,6 +391,14 @@ export default function LiveTiming() {
           </table>
         </div>
       )}
+
+      {/* ── Main content + mini map ── */}
+      <div className={styles.mainAndMap}>
+        <div className={styles.mainContent}>
+          {/* timing table is above */}
+        </div>
+        <MiniTrackMap session={session} drivers={standings} />
+      </div>
 
       {/* ── Bottom panels ── */}
       <div className={styles.bottomPanels}>
