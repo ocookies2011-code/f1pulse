@@ -40,10 +40,10 @@ export default function Premium() {
 
   if (isPremium) {
     return (
-      <div className="page-wrap" style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+      <div className="page" style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
         <div className={styles.alreadyPro}>
           <div className={styles.proIcon}><Zap size={32} /></div>
-          <h1 className="page-title">You're already Pro!</h1>
+          <h1 className="page-title-old">You're already Pro!</h1>
           <p className="page-sub">All F1Pulse Pro features are unlocked for your account.</p>
           <Link to="/live" className="btn btn-primary" style={{ marginTop: 8 }}>Open Live Timing</Link>
         </div>
@@ -52,7 +52,7 @@ export default function Premium() {
   }
 
   return (
-    <div className="page-wrap">
+    <div className="page">
       <div className={styles.wrap}>
         {/* Left: features */}
         <div className={styles.left}>

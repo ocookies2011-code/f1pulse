@@ -30,10 +30,10 @@ export default function Circuits() {
   )
 
   return (
-    <div className="page-wrap">
+    <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title"><Map size={20}/> Circuits</h1>
+          <h1 className="page-title-old"><Map size={20}/> Circuits</h1>
           <p className="page-sub">2026 Formula 1 race venues</p>
         </div>
         <div className={styles.search}>

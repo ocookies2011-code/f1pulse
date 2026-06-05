@@ -108,8 +108,8 @@ export default function Analytics() {
   }, [])
 
   return (
-    <div className="page-wrap">
-      <h1 className="page-title"><BarChart2 size={22} /> Analytics</h1>
+    <div className="page">
+      <h1 className="page-title-old"><BarChart2 size={22} /> Analytics</h1>
       <p className="page-sub">Lap charts, stint analysis and driver comparisons</p>
 
       {/* Session selector */}

@@ -1,97 +1,119 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { Activity, BarChart2, Calendar, Map, Trophy, Menu, X, Zap, LogOut, ChevronDown, SkipBack } from 'lucide-react'
+import { Activity, BarChart2, Calendar, Map, Trophy, Menu, X, Zap, LogOut, User, ChevronRight } from 'lucide-react'
 import styles from './Navbar.module.css'
 
 const NAV = [
-  { to:'/live',      label:'Live Timing', icon:Activity },
-  { to:'/standings', label:'Standings',   icon:Trophy },
-  { to:'/analytics', label:'Analytics',   icon:BarChart2 },
-  { to:'/calendar',  label:'Calendar',    icon:Calendar },
-  { to:'/circuits',  label:'Circuits',    icon:Map },
-  { to:'/replay',    label:'Replay',      icon:SkipBack, premiumOnly:true },
+  { to: '/live',      label: 'Live Timing', icon: Activity },
+  { to: '/standings', label: 'Standings',   icon: Trophy },
+  { to: '/analytics', label: 'Analytics',   icon: BarChart2 },
+  { to: '/calendar',  label: 'Calendar',    icon: Calendar },
+  { to: '/circuits',  label: 'Circuits',    icon: Map },
 ]
 
 export default function Navbar() {
   const { pathname } = useLocation()
-  const { user, profile, isPremium, signOut } = useAuth()
-  const [mob, setMob] = useState(false)
-  const [userOpen, setUserOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setUserOpen(false) }
-    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
-  }, [])
-  useEffect(() => setMob(false), [pathname])
+  const { user, isPremium, signOut } = useAuth()
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [userMenu, setUserMenu] = useState(false)
 
   return (
     <>
       <nav className={styles.nav}>
         <div className={styles.inner}>
-          <Link to="/" className={styles.logo}>
-            <span className={styles.bolt}>⚡</span>
-            <span>F1<span className={styles.acc}>Pulse</span></span>
+          {/* Logo */}
+          <Link to="/" className={styles.logo} onClick={() => setMobileOpen(false)}>
+            <span className={styles.logoIcon}>⚡</span>
+            <span>F1<span className={styles.logoRed}>Pulse</span></span>
           </Link>
+
+          {/* Desktop links */}
           <ul className={styles.links}>
-            {NAV.map(({ to, label, icon: Icon, premiumOnly }) => (
-              <li key={to}>
-                <Link to={to} className={`${styles.link} ${pathname.startsWith(to) ? styles.active : ''} ${premiumOnly ? styles.premiumLink : ''}`}>
-                  <Icon size={12} strokeWidth={2.2} /> {label}
-                  {premiumOnly && <span className={styles.proTag}>PRO</span>}
-                </Link>
-              </li>
-            ))}
+            {NAV.map(({ to, label, icon: Icon }) => {
+              const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+              return (
+                <li key={to}>
+                  <Link to={to} className={`${styles.link} ${active ? styles.active : ''}`}>
+                    <Icon size={13} strokeWidth={2.2} />
+                    {label}
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
+
+          {/* Right side */}
           <div className={styles.right}>
             {!user ? (
               <>
-                <Link to="/login" className="btn btn-ghost btn-sm">Sign in</Link>
-                <Link to="/premium" className="btn btn-gold btn-sm"><Zap size={11} /> Premium</Link>
+                <Link to="/login" className={`btn btn-ghost btn-sm`}>Sign in</Link>
+                <Link to="/premium" className={`btn btn-gold btn-sm`}>
+                  <Zap size={12} /> Premium
+                </Link>
               </>
             ) : (
-              <div ref={ref} className={styles.userWrap}>
-                {isPremium && <span className="premium-badge"><Zap size={9}/> PRO</span>}
-                <button className={styles.userBtn} onClick={() => setUserOpen(v=>!v)}>
-                  <div className={styles.avatar}>{(profile?.full_name || user.email || 'U')[0].toUpperCase()}</div>
-                  <ChevronDown size={12} style={{ transform: userOpen ? 'rotate(180deg)' : '', transition: 'transform .15s' }} />
+              <div className={styles.userWrap}>
+                {isPremium && <span className="premium-badge"><Zap size={9} />PRO</span>}
+                <button className={styles.userBtn} onClick={() => setUserMenu(v => !v)}>
+                  <div className={styles.avatar}><User size={13} /></div>
                 </button>
-                {userOpen && (
-                  <div className={styles.drop}>
-                    <div className={styles.dropEmail}>{user.email}</div>
-                    <div className={styles.dropDivider} />
-                    {!isPremium && <Link to="/premium" className={styles.dropItem} onClick={()=>setUserOpen(false)}><Zap size={12}/> Upgrade to Pro</Link>}
-                    <button className={styles.dropItem} onClick={()=>{signOut();setUserOpen(false)}}><LogOut size={12}/> Sign out</button>
-                  </div>
+                {userMenu && (
+                  <>
+                    <div className={styles.dropOverlay} onClick={() => setUserMenu(false)} />
+                    <div className={styles.drop}>
+                      <div className={styles.dropEmail}>{user.email}</div>
+                      <div className={styles.dropDivider} />
+                      {!isPremium && (
+                        <Link to="/premium" className={styles.dropItem} onClick={() => setUserMenu(false)}>
+                          <Zap size={13} /> Upgrade to Pro
+                        </Link>
+                      )}
+                      <button className={styles.dropItem} onClick={() => { signOut(); setUserMenu(false) }}>
+                        <LogOut size={13} /> Sign out
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             )}
-            <button className={styles.burger} onClick={()=>setMob(v=>!v)}>{mob?<X size={18}/>:<Menu size={18}/>}</button>
+            <button className={styles.burger} onClick={() => setMobileOpen(v => !v)} aria-label="Menu">
+              {mobileOpen ? <X size={19} /> : <Menu size={19} />}
+            </button>
           </div>
         </div>
-        <div className={styles.redLine}/>
+        {/* Active indicator line */}
+        <div className={styles.redLine} />
       </nav>
-      {mob && (
-        <div className={styles.overlay} onClick={()=>setMob(false)}>
-          <div className={styles.drawer} onClick={e=>e.stopPropagation()}>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className={styles.overlay} onClick={() => setMobileOpen(false)}>
+          <div className={styles.drawer} onClick={e => e.stopPropagation()}>
             <div className={styles.dHead}>
-              <span className={styles.logo}><span className={styles.bolt}>⚡</span><span>F1<span className={styles.acc}>Pulse</span></span></span>
-              <button onClick={()=>setMob(false)} style={{color:'var(--text-2)'}}><X size={18}/></button>
+              <span className={styles.logo} style={{ fontSize: '1rem' }}>
+                <span className={styles.logoIcon}>⚡</span>
+                F1<span className={styles.logoRed}>Pulse</span>
+              </span>
+              <button className={styles.burger} onClick={() => setMobileOpen(false)}><X size={19} /></button>
             </div>
-            {NAV.map(({to,label,icon:Icon})=>(
-              <Link key={to} to={to} className={`${styles.mLink} ${pathname.startsWith(to)?styles.mActive:''}`}>
-                <Icon size={15}/> {label}
-              </Link>
-            ))}
-            <div className={styles.mDiv}/>
-            {!user ? (
-              <><Link to="/login" className={styles.mLink}>Sign in</Link>
-              <Link to="/premium" className={`${styles.mLink} ${styles.mGold}`}><Zap size={14}/> Get Premium</Link></>
-            ) : (
-              <><div className={styles.mEmail}>{user.email}</div>
-              {!isPremium && <Link to="/premium" className={`${styles.mLink} ${styles.mGold}`}><Zap size={14}/> Upgrade</Link>}
-              <button className={styles.mLink} onClick={()=>{signOut();setMob(false)}}><LogOut size={14}/> Sign out</button></>
-            )}
+            {NAV.map(({ to, label, icon: Icon }) => {
+              const active = pathname === to || (to !== '/' && pathname.startsWith(to))
+              return (
+                <Link key={to} to={to} className={`${styles.mLink} ${active ? styles.mActive : ''}`} onClick={() => setMobileOpen(false)}>
+                  <Icon size={15} /> {label}
+                  <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.3 }} />
+                </Link>
+              )
+            })}
+            <div className={styles.mDiv} />
+            <Link to="/premium" className={`${styles.mLink} ${styles.mGold}`} onClick={() => setMobileOpen(false)}>
+              <Zap size={15} /> Premium
+            </Link>
+            {user
+              ? <button className={styles.mLink} onClick={() => { signOut(); setMobileOpen(false) }}><LogOut size={15} /> Sign out</button>
+              : <Link to="/login" className={styles.mLink} onClick={() => setMobileOpen(false)}><User size={15} /> Sign in</Link>
+            }
           </div>
         </div>
       )}

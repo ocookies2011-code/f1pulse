@@ -1,129 +1,193 @@
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
+/* ── Header ── */
+.hd {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
 }
-.headerRight { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-.sessionBadge {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: 0.85rem; color: var(--text-2); margin-top: 4px;
+.hdLeft { display: flex; flex-direction: column; gap: 5px; }
+.title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.35rem; font-weight: 800; letter-spacing: -0.025em;
+}
+.sessionInfo {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.8rem; color: var(--text-2);
 }
 .sessionDot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--green);
-  animation: blink 1.2s ease-in-out infinite;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0;
+  animation: blink 1.3s ease-in-out infinite;
 }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-.refreshInfo { font-size: 0.78rem; color: var(--text-3); display: flex; align-items: center; gap: 5px; }
+.hdRight { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.premiumNudge {
+.proBadge {
   display: inline-flex; align-items: center; gap: 5px;
-  background: var(--gold-dim);
-  border: 1px solid var(--gold);
-  border-radius: 6px;
-  padding: 5px 10px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--gold);
+  background: var(--gold-dim); border: 1px solid rgba(245,166,35,0.3);
+  border-radius: 5px; padding: 5px 10px;
+  font-size: 0.75rem; font-weight: 700; color: var(--gold);
 }
 
-/* Weather */
-.weather {
-  display: flex; flex-wrap: wrap; gap: 16px;
-  font-size: 0.82rem; color: var(--text-2);
-  margin-bottom: 16px;
-  align-items: center;
+.toggleBtn {
+  padding: 5px 11px; border-radius: var(--radius);
+  font-size: 0.76rem; font-weight: 600; color: var(--text-3);
+  border: 1px solid var(--border); background: var(--bg-2);
+  transition: all 0.12s;
 }
-.weather span { display: flex; align-items: center; gap: 5px; }
-.rain { color: var(--wet); }
+.toggleBtn:hover { color: var(--text-2); border-color: var(--border-bright); }
+.toggleBtn.active { color: var(--text); background: var(--bg-3); border-color: var(--border-bright); }
 
-/* RC Panel */
-.rcPanel {
-  background: var(--bg-1);
+.updateTime {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.75rem; color: var(--text-3); font-family: var(--font-mono);
+}
+.spinning { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Meta row ── */
+.metaRow {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+  padding: 9px 14px;
+  background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
 }
-.rcTitle { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.rcMsg { font-size: 0.82rem; color: var(--text-2); padding: 4px 0; border-bottom: 1px solid var(--border); }
-.rcMsg:last-child { border-bottom: none; }
-.rcRed { color: var(--red); }
-.rcYellow { color: var(--yellow); }
-.rcGreen { color: var(--green); }
+.weather { display: flex; flex-wrap: wrap; gap: 14px; color: var(--text-2); align-items: center; }
+.weather span { display: flex; align-items: center; gap: 5px; }
+.rain { color: var(--wet) !important; }
 
-/* Table */
-.tableWrap { overflow-x: auto; }
+.rcRow { display: flex; align-items: center; gap: 7px; }
+.rcIcon { color: var(--text-3); flex-shrink: 0; }
+
+/* ── RC Panel ── */
+.rcPanel {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 12px;
+  overflow: hidden;
+}
+.rcSummary {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; font-size: 0.77rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-3); cursor: pointer; list-style: none;
+}
+.rcSummary::-webkit-details-marker { display: none; }
+.rcList { padding: 4px 0 8px; }
+.rcMsg { padding: 5px 14px; font-size: 0.8rem; color: var(--text-2); }
+.rcRed    { color: var(--red) !important; }
+.rcYellow { color: var(--yellow) !important; }
+.rcGreen  { color: var(--green) !important; }
+.rcSc     { color: var(--gold) !important; }
+
+/* ── Table wrapper ── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+}
+
 .table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+  width: 100%; border-collapse: collapse; font-size: 0.845rem;
 }
+
+/* Header row */
+.table thead tr { background: var(--bg-2); border-bottom: 1px solid var(--border); }
 .table thead th {
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-3);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  padding: 9px 12px; text-align: left;
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.1em; color: var(--text-3);
+  text-transform: uppercase; white-space: nowrap;
 }
-.row {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
-}
+.thPos    { width: 42px; text-align: center !important; }
+.thDriver { min-width: 160px; }
+.thAge    { width: 50px; }
+.thLap    { width: 50px; }
+.thMini   { min-width: 160px; }
+
+/* Body rows */
+.row { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+.row:last-child { border-bottom: none; }
 .row:hover { background: var(--bg-2); }
 .row td { padding: 10px 12px; vertical-align: middle; white-space: nowrap; }
 
-.leader { background: rgba(225,6,0,0.05); }
-.pitOut { background: rgba(245,166,35,0.05); }
+.rowLeader { background: rgba(57,217,138,0.03); }
+.rowLeader:hover { background: rgba(57,217,138,0.06) !important; }
+.rowPit { background: rgba(245,166,35,0.03); }
 
-.pos { width: 40px; }
-.posNum { font-weight: 800; font-size: 1rem; font-family: var(--font-mono); }
+.compact td { padding: 6px 12px; }
 
-.driver { display: flex; align-items: center; gap: 8px; min-width: 120px; }
-.driverLine { width: 3px; height: 22px; border-radius: 2px; background: currentColor; flex-shrink: 0; }
-.driverAcronym { font-weight: 800; letter-spacing: 0.04em; }
-.driverNum { font-size: 0.78rem; color: var(--text-3); font-family: var(--font-mono); }
+/* Cells */
+.tdPos { text-align: center; width: 42px; }
+.posNum { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; }
 
-.team { color: var(--text-2); font-size: 0.82rem; }
+.tdDriver { display: flex; align-items: center; gap: 9px; min-width: 160px; }
+.teamBar  { width: 3px; height: 26px; border-radius: 2px; flex-shrink: 0; }
+.driverInfo { display: flex; flex-direction: column; gap: 1px; }
+.acronym  { font-weight: 800; font-size: 0.875rem; letter-spacing: 0.02em; }
+.teamName { font-size: 0.7rem; color: var(--text-3); }
+.driverNum { font-size: 0.72rem; color: var(--text-3); font-family: var(--font-mono); margin-left: auto; }
 
-.lapTime { font-size: 0.9rem; letter-spacing: 0.02em; }
-.purple { color: var(--purple); font-weight: 700; }
-.leader { color: var(--green); font-size: 0.78rem; font-weight: 700; }
+.timeCell { color: var(--text-2); }
+.timePurple { color: var(--purple); font-weight: 700; }
+.gapCell  { color: var(--text-2); font-size: 0.82rem; }
+.intCell  { color: var(--text-3); font-size: 0.8rem; }
+.ageCell  { color: var(--text-3); font-size: 0.82rem; }
+.lapCell  { color: var(--text-3); font-size: 0.82rem; }
+.leaderTag { font-size: 0.68rem; font-weight: 700; color: var(--green); letter-spacing: 0.06em; }
+.dash { color: var(--text-3); }
 
-/* Error / empty */
-.error, .empty {
-  text-align: center;
-  padding: 60px 24px;
-  color: var(--text-2);
-  font-size: 0.95rem;
+/* Tyre chip */
+.tyreChip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em;
 }
-.error { color: var(--red); }
+.tyreS { color: var(--soft); }
+.tyreM { color: var(--medium); }
+.tyreH { color: var(--text-2); }
+.tyreI { color: var(--inter); }
+.tyreW { color: var(--wet); }
+
+/* Mini sectors */
+.miniSectors { display: flex; gap: 4px; align-items: center; }
+.sectorGroup { display: flex; gap: 1.5px; }
+.seg {
+  width: 5px; height: 14px; border-radius: 1px;
+  background: var(--bg-4);
+}
+.seg-g   { background: var(--green); }
+.seg-p   { background: var(--purple); }
+.seg-y   { background: var(--yellow); }
+.seg-pit { background: var(--text-3); }
+.seg-off { background: var(--bg-4); }
+
+.lockLink {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.73rem; color: var(--gold); font-weight: 600;
+}
+
+/* Empty / error */
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 72px 24px; color: var(--text-2); font-size: 0.9rem;
+  gap: 4px; text-align: center;
+}
 
 /* Upsell */
 .upsell {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--bg-1);
-  border: 1px solid rgba(245,166,35,0.2);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  margin-top: 24px;
-  color: var(--text-2);
-  font-size: 0.875rem;
-  flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  background: var(--bg-1); border: 1px solid rgba(245,166,35,0.18);
+  border-radius: var(--radius-lg); padding: 14px 18px; margin-top: 16px;
 }
-.upsell strong { color: var(--text); }
+.upsellLeft { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.upsellSub  { color: var(--text-2); }
 
 @media (max-width: 768px) {
-  .table { font-size: 0.8rem; }
-  .table thead th, .row td { padding: 8px 8px; }
+  .table { font-size: 0.78rem; }
+  .table thead th, .row td { padding: 7px 9px; }
+  .teamName, .driverNum { display: none; }
+  .thAge, .thLap { display: none; }
+  .ageCell, .lapCell { display: none; }
 }

@@ -1,4 +1,43 @@
-.driver{display:flex;align-items:center;gap:10px}
-.bar{width:3px;height:28px;border-radius:2px;flex-shrink:0}
-.barBg{height:5px;background:var(--bg-3);border-radius:3px;overflow:hidden;min-width:60px}
-.barFill{height:100%;border-radius:3px;transition:width .5s ease}
+.tabs { margin-bottom: 20px; }
+
+.tableWrap {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.table { width: 100%; border-collapse: collapse; font-size: 0.855rem; }
+.table thead tr { background: var(--bg-2); border-bottom: 1px solid var(--border); }
+.table thead th {
+  padding: 9px 14px; text-align: left;
+  font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.09em; color: var(--text-3); text-transform: uppercase;
+}
+.row { border-bottom: 1px solid var(--border); background: var(--bg-1); transition: background 0.1s; }
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--bg-2); }
+.row td { padding: 11px 14px; vertical-align: middle; white-space: nowrap; }
+
+.pos { width: 52px; font-family: var(--font-mono); font-size: 1rem; font-weight: 700; }
+
+.driver { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+.driverBar { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+.driverName { font-weight: 700; font-size: 0.875rem; }
+.driverAcro { font-size: 0.73rem; color: var(--text-3); margin-top: 1px; }
+
+.team { color: var(--text-2); font-size: 0.82rem; }
+
+.pts { font-size: 1rem; font-weight: 800; color: var(--text); }
+
+.barCol { width: 180px; }
+.barBg  { height: 4px; background: var(--bg-4); border-radius: 2px; overflow: hidden; }
+.barFill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+.error {
+  padding: 48px 24px; text-align: center;
+  color: var(--red); font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .barCol { display: none; }
+  .team   { display: none; }
+}

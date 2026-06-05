@@ -61,10 +61,10 @@ export default function Standings() {
   }
 
   return (
-    <div className="page-wrap">
+    <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title"><Trophy size={20}/> Championship Standings</h1>
+          <h1 className="page-hd"><Trophy size={20}/> Championship Standings</h1>
           <p className="page-sub">
             2026 Formula 1 World Championship
             {sessionInfo && ` · After ${sessionInfo.meeting_name}`}

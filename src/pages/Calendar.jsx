@@ -66,9 +66,9 @@ export default function Calendar() {
   }
 
   return (
-    <div className="page-wrap">
+    <div className="page">
       <div className="page-header">
-        <div><h1 className="page-title"><CalIcon size={20}/> 2026 Race Calendar</h1>
+        <div><h1 className="page-title-old"><CalIcon size={20}/> 2026 Race Calendar</h1>
         <p className="page-sub">Formula 1 World Championship — {meetings.length} rounds</p></div>
       </div>
 
