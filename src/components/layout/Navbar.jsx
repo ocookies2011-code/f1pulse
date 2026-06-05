@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { Activity, BarChart2, Calendar, Map, Trophy, Users, Film, Menu, X, Zap, LogOut, User, ChevronRight } from 'lucide-react'
+import { Activity, BarChart2, Calendar, Map, Trophy, Users, Film, Navigation, Menu, X, Zap, LogOut, User, ChevronRight } from 'lucide-react'
 import styles from './Navbar.module.css'
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { to: '/calendar',  label: 'Calendar',    icon: Calendar },
   { to: '/circuits',  label: 'Circuits',    icon: Map },
   { to: '/teams',     label: 'Teams',       icon: Users },
+  { to: '/trackmap',  label: 'Track Map',   icon: Navigation },
   { to: '/replay',    label: 'Replay',      icon: Film },
 ]
 

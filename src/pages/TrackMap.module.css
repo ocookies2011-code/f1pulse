@@ -1,0 +1,116 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── Map ── */
+.mapWrap {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+  background: radial-gradient(ellipse at center, #0f1218 0%, #090c10 100%);
+}
+
+/* Legend */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.legendItem {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; color: var(--text-2);
+}
+.legendLine {
+  width: 20px; height: 3px; border-radius: 2px; flex-shrink: 0;
+}
+.cornerCircle {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.sidebarTitle {
+  padding: 9px 14px;
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.sidebarEmpty { padding: 16px; font-size: 0.82rem; color: var(--text-3); }
+
+.driverRow {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer; transition: background 0.1s;
+  font-size: 0.8rem;
+}
+.driverRow:hover { background: var(--bg-2); }
+.driverSelected { background: var(--bg-3) !important; }
+.driverOffline  { opacity: 0.4; }
+
+.drvBar  { width: 3px; height: 20px; border-radius: 2px; flex-shrink: 0; }
+.drvNum  { font-family: var(--font-mono); font-size: 0.73rem; font-weight: 700; min-width: 28px; }
+.drvAcro { font-weight: 700; font-size: 0.82rem; flex: 1; }
+.drvTeam { font-size: 0.7rem; color: var(--text-3); }
+.liveDot    { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; animation: blink 1.3s ease-in-out infinite; }
+.offlineDot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.driverDetail {
+  margin: 10px;
+  background: var(--bg-2); border: 1px solid; border-radius: var(--radius);
+  padding: 12px;
+}
+.detailName  { font-weight: 700; font-size: 0.875rem; margin-bottom: 3px; }
+.detailTeam  { font-size: 0.78rem; font-weight: 600; margin-bottom: 8px; }
+.detailCoords {
+  display: flex; gap: 10px;
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-3);
+}
+
+.sidebarUpsell {
+  margin: 10px;
+  background: var(--bg-2); border: 1px solid rgba(245,166,35,0.2);
+  border-radius: var(--radius); padding: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 0.8rem; color: var(--text-2);
+}
+
+/* Top bar utils */
+.proBadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.75rem; font-weight: 700; color: var(--gold);
+  background: var(--gold-dim); border: 1px solid rgba(245,166,35,0.3);
+  border-radius: 5px; padding: 4px 10px;
+}
+.updateTime {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-3);
+}
+
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .svg { min-height: 300px; }
+}

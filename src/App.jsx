@@ -11,6 +11,7 @@ import { TeamsList, TeamProfile } from './pages/Teams'
 import Premium from './pages/Premium'
 import Auth from './pages/Auth'
 import Replay from './pages/Replay'
+import TrackMap from './pages/TrackMap'
 import './styles/global.css'
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/circuits"   element={<Circuits />} />
           <Route path="/teams"      element={<TeamsList />} />
           <Route path="/teams/:name" element={<TeamProfile />} />
+          <Route path="/trackmap" element={<TrackMap />} />
           <Route path="/replay"     element={<Replay />} />
           <Route path="/premium"    element={<Premium />} />
           <Route path="/login"      element={<Auth />} />
