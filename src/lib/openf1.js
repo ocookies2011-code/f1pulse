@@ -1,13 +1,35 @@
 const BASE = 'https://api.openf1.org/v1'
 
-// Your OpenF1 credentials are stored in env vars
-const API_KEY = import.meta.env.VITE_OPENF1_API_KEY
-const API_PASSWORD = import.meta.env.VITE_OPENF1_API_PASSWORD
+// Token cache (in-memory, per browser session)
+let cachedToken = null
+let tokenExpiry = 0
 
-function authHeaders() {
-  if (!API_KEY || !API_PASSWORD) return {}
-  const token = btoa(`${API_KEY}:${API_PASSWORD}`)
-  return { Authorization: `Basic ${token}` }
+// Fetch OAuth2 token via our Supabase Edge Function proxy
+// (credentials never leave the backend)
+async function getToken() {
+  if (cachedToken && Date.now() < tokenExpiry - 60000) {
+    return cachedToken
+  }
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
+  const res = await fetch(`${supabaseUrl}/functions/v1/openf1-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseAnon}`,
+    },
+  })
+  if (!res.ok) return null
+  const { access_token, expires_in } = await res.json()
+  cachedToken = access_token
+  tokenExpiry = Date.now() + (parseInt(expires_in) * 1000)
+  return access_token
+}
+
+async function authHeaders() {
+  const token = await getToken()
+  if (!token) return {}
+  return { Authorization: `Bearer ${token}` }
 }
 
 async function get(endpoint, params = {}) {
@@ -15,7 +37,8 @@ async function get(endpoint, params = {}) {
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, v)
   })
-  const res = await fetch(url.toString(), { headers: authHeaders() })
+  const headers = await authHeaders()
+  const res = await fetch(url.toString(), { headers })
   if (!res.ok) throw new Error(`OpenF1 ${res.status}: ${res.statusText}`)
   return res.json()
 }
@@ -35,7 +58,7 @@ export async function getDrivers(session_key = 'latest') {
   return get('/drivers', { session_key })
 }
 
-// ── Positions (live standings) ────────────────────────
+// ── Positions ─────────────────────────────────────────
 export async function getPositions(session_key = 'latest') {
   return get('/position', { session_key })
 }
@@ -75,7 +98,7 @@ export async function getTeamRadio(session_key = 'latest') {
   return get('/team_radio', { session_key })
 }
 
-// ── Car telemetry (premium) ───────────────────────────
+// ── Car telemetry ─────────────────────────────────────
 export async function getCarData(session_key, driver_number) {
   return get('/car_data', { session_key, driver_number })
 }
@@ -85,12 +108,26 @@ export async function getIntervals(session_key = 'latest') {
   return get('/intervals', { session_key })
 }
 
-// ── Meetings (race calendar) ──────────────────────────
+// ── Meetings ──────────────────────────────────────────
 export async function getMeetings(year) {
   return get('/meetings', { year: year ?? new Date().getFullYear() })
 }
 
-// ── Drivers standings helper: build from latest session laps ──
+// ── Championship standings (from API) ─────────────────
+export async function getChampionshipDrivers(session_key = 'latest') {
+  return get('/championship_drivers', { session_key })
+}
+
+export async function getChampionshipTeams(session_key = 'latest') {
+  return get('/championship_teams', { session_key })
+}
+
+// ── Session results ───────────────────────────────────
+export async function getSessionResult(session_key) {
+  return get('/session_result', { session_key })
+}
+
+// ── Build live standings from positions + laps + stints ──
 export async function buildLiveStandings(session_key = 'latest') {
   const [positions, drivers, stints, intervals, laps] = await Promise.all([
     getPositions(session_key),
@@ -100,7 +137,6 @@ export async function buildLiveStandings(session_key = 'latest') {
     getLatestLaps(session_key),
   ])
 
-  // Latest position per driver
   const posMap = {}
   for (const p of positions) {
     if (!posMap[p.driver_number] || p.date > posMap[p.driver_number].date) {
@@ -108,7 +144,6 @@ export async function buildLiveStandings(session_key = 'latest') {
     }
   }
 
-  // Latest stint per driver (for tyre)
   const stintMap = {}
   for (const s of stints) {
     if (!stintMap[s.driver_number] || s.stint_number > stintMap[s.driver_number].stint_number) {
@@ -116,24 +151,19 @@ export async function buildLiveStandings(session_key = 'latest') {
     }
   }
 
-  // Best / latest lap per driver
   const lapMap = {}
   for (const l of laps) {
     if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []
     lapMap[l.driver_number].push(l)
   }
 
-  // Interval map
   const intMap = {}
-  for (const i of intervals) {
-    intMap[i.driver_number] = i
-  }
+  for (const i of intervals) intMap[i.driver_number] = i
 
-  // Driver info map
   const drvMap = {}
   for (const d of drivers) drvMap[d.driver_number] = d
 
-  const standing = Object.values(posMap)
+  return Object.values(posMap)
     .sort((a, b) => a.position - b.position)
     .map(p => {
       const drv = drvMap[p.driver_number] ?? {}
@@ -154,6 +184,7 @@ export async function buildLiveStandings(session_key = 'latest') {
         full_name: drv.full_name ?? '',
         team_name: drv.team_name ?? '',
         team_colour: drv.team_colour ?? '555555',
+        headshot_url: drv.headshot_url ?? null,
         tyre: stint?.compound ?? null,
         tyre_age: stint?.tyre_age_at_start != null && lastLap?.lap_number != null
           ? (lastLap.lap_number - (stint.lap_start ?? 0) + (stint.tyre_age_at_start ?? 0))
@@ -164,11 +195,18 @@ export async function buildLiveStandings(session_key = 'latest') {
         gap_to_leader: interval?.gap_to_leader ?? null,
         interval: interval?.interval ?? null,
         is_pit_out_lap: lastLap?.is_pit_out_lap ?? false,
-        sectors: lastLap ? [lastLap.duration_sector_1, lastLap.duration_sector_2, lastLap.duration_sector_3] : [],
+        sectors: lastLap ? [
+          lastLap.duration_sector_1,
+          lastLap.duration_sector_2,
+          lastLap.duration_sector_3,
+        ] : [],
+        segments: lastLap ? [
+          lastLap.segments_sector_1 ?? [],
+          lastLap.segments_sector_2 ?? [],
+          lastLap.segments_sector_3 ?? [],
+        ] : [],
       }
     })
-
-  return standing
 }
 
 export function formatLapTime(seconds) {
@@ -179,7 +217,35 @@ export function formatLapTime(seconds) {
 }
 
 export function formatGap(gap) {
-  if (!gap) return '--'
+  if (!gap && gap !== 0) return '--'
   if (typeof gap === 'string') return gap
   return `+${gap.toFixed(3)}`
+}
+
+// ── WebSocket live stream (premium) ──────────────────
+// Returns a cleanup function
+export function subscribeToLiveData(topics, onMessage) {
+  // Lazily import mqtt (browser build via CDN or bundled)
+  const wsUrl = 'wss://mqtt.openf1.org:8084/mqtt'
+  let client = null
+
+  getToken().then(token => {
+    if (!token) return
+    // Use mqtt.js if available (added via CDN in index.html for premium)
+    if (typeof window.mqtt === 'undefined') return
+    client = window.mqtt.connect(wsUrl, {
+      username: 'f1pulse',
+      password: token,
+    })
+    client.on('connect', () => {
+      topics.forEach(t => client.subscribe(t))
+    })
+    client.on('message', (topic, message) => {
+      try {
+        onMessage(topic, JSON.parse(message.toString()))
+      } catch {}
+    })
+  })
+
+  return () => { if (client) client.end() }
 }
