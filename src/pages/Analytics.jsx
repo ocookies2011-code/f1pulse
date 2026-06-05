@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart2, Zap, Lock } from 'lucide-react'
-import { getSessions, getLaps, formatLapTime } from '../lib/openf1'
+import { getSessions, getLaps, fmt as formatLapTime } from '../lib/openf1'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { useAuth } from '../hooks/useAuth'
 import styles from './Analytics.module.css'

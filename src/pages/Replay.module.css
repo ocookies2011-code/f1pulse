@@ -1,0 +1,23 @@
+.gate{text-align:center;padding:80px 20px;max-width:480px;margin:0 auto}
+.gate h2{font-size:1.4rem;font-weight:800;margin-bottom:12px}
+.gate p{color:var(--text-2);line-height:1.6;font-size:.9rem}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
+.sel{background:var(--bg-1);border:1px solid var(--border-bright);color:var(--text);border-radius:var(--radius);padding:7px 12px;font-family:var(--font-display);font-size:.82rem;cursor:pointer;min-width:200px}
+.sel:focus{outline:none;border-color:var(--red)}
+.player{display:flex;align-items:center;gap:8px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:16px;flex-wrap:wrap}
+.playBtn{color:var(--text-2);padding:6px;border-radius:var(--radius);transition:all .12s;display:flex;align-items:center}
+.playBtn:hover{color:var(--text);background:var(--bg-3)}
+.playBtnMain{background:var(--red);color:#fff;padding:8px;border-radius:var(--radius)}
+.playBtnMain:hover{background:var(--red-dark)}
+.progressWrap{flex:1;min-width:100px;cursor:pointer;padding:8px 0}
+.progressBg{height:4px;background:var(--bg-3);border-radius:2px;overflow:visible;position:relative}
+.progressFill{height:100%;background:var(--red);border-radius:2px;transition:width .15s;position:relative}
+.progressFill::after{content:'';position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:var(--red);border-radius:50%}
+.lapInfo{display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text-2);white-space:nowrap;font-family:var(--font-mono)}
+.speedWrap{display:flex;gap:2px}
+.speedBtn{padding:4px 8px;border-radius:4px;font-size:.72rem;font-weight:700;color:var(--text-3);font-family:var(--font-mono);transition:all .12s}
+.speedBtn:hover{color:var(--text);background:var(--bg-3)}
+.speedActive{background:var(--bg-3);color:var(--text)}
+.pitRow{background:rgba(245,166,35,.04)}
+.pitBadge{font-size:.62rem;font-weight:700;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,166,35,.3);padding:1px 5px;border-radius:3px}
+@media(max-width:600px){.player{gap:6px}.progressWrap{order:10;flex-basis:100%}}

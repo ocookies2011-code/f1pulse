@@ -9,6 +9,7 @@ import Calendar from './pages/Calendar'
 import Circuits from './pages/Circuits'
 import Premium from './pages/Premium'
 import Auth from './pages/Auth'
+import Replay from './pages/Replay'
 import './styles/global.css'
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/circuits" element={<Circuits />} />
           <Route path="/premium" element={<Premium />} />
+          <Route path="/replay" element={<Replay />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/signup" element={<Auth />} />
         </Routes>

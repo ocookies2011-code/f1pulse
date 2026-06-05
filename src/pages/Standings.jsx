@@ -1,141 +1,112 @@
 import { useEffect, useState } from 'react'
 import { Trophy } from 'lucide-react'
-import { getSessions, getChampionshipDrivers, getChampionshipTeams, getDrivers } from '../lib/openf1'
+import { getLatestRaceSession, getChampionshipDrivers, getChampionshipTeams, getDrivers } from '../lib/openf1'
 import styles from './Standings.module.css'
-
-function medal(pos) {
-  if (pos === 1) return '🥇'
-  if (pos === 2) return '🥈'
-  if (pos === 3) return '🥉'
-  return pos
-}
 
 export default function Standings() {
   const [tab, setTab] = useState('drivers')
-  const [driverStandings, setDriverStandings] = useState([])
-  const [constructorStandings, setConstructorStandings] = useState([])
+  const [drivers, setDrivers] = useState([])
+  const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [sessionInfo, setSessionInfo] = useState(null)
 
   useEffect(() => {
     async function load() {
       try {
-        // Get the latest race session to pull championship data from
-        const sessions = await getSessions({ year: 2026, session_name: 'Race' })
-        const raceSessions = sessions.filter(s => !s.session_name?.toLowerCase().includes('sprint'))
-        const latestRace = raceSessions.sort((a, b) => new Date(b.date_start) - new Date(a.date_start))[0]
-
-        if (!latestRace) {
-          setError('No race sessions found yet for 2026.')
+        // Championship data is ONLY available on completed race sessions
+        const raceSession = await getLatestRaceSession(2026)
+        if (!raceSession) {
+          setError('No completed race sessions found for 2026 yet.')
           return
         }
-
-        const sessionKey = latestRace.session_key
-
-        // Fetch championship standings + driver info in parallel
-        const [champDrivers, champTeams, drivers] = await Promise.all([
-          getChampionshipDrivers(sessionKey),
-          getChampionshipTeams(sessionKey),
-          getDrivers(sessionKey),
+        setSessionInfo(raceSession)
+        const sk = raceSession.session_key
+        const [champD, champT, drvs] = await Promise.all([
+          getChampionshipDrivers(sk),
+          getChampionshipTeams(sk),
+          getDrivers(sk),
         ])
-
-        // Build driver map for colours/names
         const drvMap = {}
-        for (const d of drivers) drvMap[d.driver_number] = d
+        for (const d of drvs) drvMap[d.driver_number] = d
 
-        const driverRows = champDrivers
-          .sort((a, b) => a.position_current - b.position_current)
-          .map(c => {
-            const drv = drvMap[c.driver_number] ?? {}
-            return {
-              position: c.position_current,
-              driver_number: c.driver_number,
-              name: drv.full_name ?? `Driver #${c.driver_number}`,
-              acronym: drv.name_acronym ?? '???',
-              team: drv.team_name ?? '—',
-              colour: drv.team_colour ?? '555555',
-              headshot: drv.headshot_url ?? null,
-              points: c.points_current ?? 0,
-              points_gained: (c.points_current ?? 0) - (c.points_start ?? 0),
-            }
+        setDrivers(
+          champD.sort((a,b) => a.position_current - b.position_current).map(c => {
+            const d = drvMap[c.driver_number] ?? {}
+            return { ...c, full_name: d.full_name ?? `#${c.driver_number}`, acronym: d.name_acronym ?? '???', team: d.team_name ?? '—', colour: d.team_colour ?? '555555' }
           })
-
-        const teamRows = champTeams
-          .sort((a, b) => a.position_current - b.position_current)
-          .map(c => {
-            // Find a driver from this team for the colour
-            const teamDriver = drivers.find(d => d.team_name === c.team_name)
-            return {
-              position: c.position_current,
-              team: c.team_name,
-              colour: teamDriver?.team_colour ?? '555555',
-              points: c.points_current ?? 0,
-              points_gained: (c.points_current ?? 0) - (c.points_start ?? 0),
-            }
+        )
+        setTeams(
+          champT.sort((a,b) => a.position_current - b.position_current).map(c => {
+            const td = Object.values(drvMap).find(d => d.team_name === c.team_name)
+            return { ...c, colour: td?.team_colour ?? '555555' }
           })
-
-        setDriverStandings(driverRows)
-        setConstructorStandings(teamRows)
-      } catch (e) {
-        setError('Could not load standings. Try again shortly.')
+        )
+      } catch(e) {
+        setError('Could not load standings — try again shortly.')
         console.error(e)
-      } finally {
-        setLoading(false)
-      }
+      } finally { setLoading(false) }
     }
     load()
   }, [])
 
-  const maxPts = tab === 'drivers'
-    ? (driverStandings[0]?.points || 1)
-    : (constructorStandings[0]?.points || 1)
+  const driverRows = tab === 'drivers' ? drivers : teams
+  const maxPts = driverRows[0]?.points_current || 1
+
+  function medal(p) {
+    if (p===1) return <span style={{fontSize:'1.1rem'}}>🥇</span>
+    if (p===2) return <span style={{fontSize:'1.1rem'}}>🥈</span>
+    if (p===3) return <span style={{fontSize:'1.1rem'}}>🥉</span>
+    return <span className={`mono`} style={{fontWeight:700}}>{p}</span>
+  }
 
   return (
     <div className="page-wrap">
-      <h1 className="page-title"><Trophy size={22} /> Championship Standings</h1>
-      <p className="page-sub">2026 Formula 1 World Championship</p>
-
-      <div className={styles.tabs}>
-        <button className={`${styles.tab} ${tab === 'drivers' ? styles.active : ''}`} onClick={() => setTab('drivers')}>
-          Drivers
-        </button>
-        <button className={`${styles.tab} ${tab === 'constructors' ? styles.active : ''}`} onClick={() => setTab('constructors')}>
-          Constructors
-        </button>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title"><Trophy size={20}/> Championship Standings</h1>
+          <p className="page-sub">
+            2026 Formula 1 World Championship
+            {sessionInfo && ` · After ${sessionInfo.meeting_name}`}
+          </p>
+        </div>
       </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><div className="spinner" /></div>
-      ) : error ? (
-        <div className={styles.error}>{error}</div>
-      ) : tab === 'drivers' ? (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>POS</th>
-                <th>DRIVER</th>
-                <th>TEAM</th>
-                <th className="mono">PTS</th>
-                <th className={styles.barCol}></th>
-              </tr>
-            </thead>
+      <div className="tab-row">
+        <button className={`tab-btn ${tab==='drivers'?'active':''}`} onClick={()=>setTab('drivers')}>Drivers</button>
+        <button className={`tab-btn ${tab==='constructors'?'active':''}`} onClick={()=>setTab('constructors')}>Constructors</button>
+      </div>
+
+      {loading ? <div className="center-spin"><div className="spinner"/></div>
+      : error ? <div className="state-msg err">{error}</div>
+      : tab==='drivers' ? (
+        <div className="dt-wrap">
+          <table className="dt">
+            <thead><tr>
+              <th style={{width:48}}>POS</th>
+              <th>DRIVER</th>
+              <th>TEAM</th>
+              <th className="mono" style={{textAlign:'right'}}>PTS</th>
+              <th style={{width:180}}></th>
+            </tr></thead>
             <tbody>
-              {driverStandings.map((d) => (
-                <tr key={d.driver_number} className={styles.row}>
-                  <td className={styles.pos}>{medal(d.position)}</td>
-                  <td className={styles.driver}>
-                    <span className={styles.driverBar} style={{ backgroundColor: `#${d.colour}` }} />
-                    <div>
-                      <div className={styles.driverName}>{d.name}</div>
-                      <div className={styles.driverAcro}>{d.acronym}</div>
+              {drivers.map(d => (
+                <tr key={d.driver_number}>
+                  <td style={{textAlign:'center'}}>{medal(d.position_current)}</td>
+                  <td>
+                    <div className={styles.driver}>
+                      <span className={styles.bar} style={{background:`#${d.colour}`}}/>
+                      <div>
+                        <div style={{fontWeight:700}}>{d.full_name}</div>
+                        <div className={`mono`} style={{fontSize:'.72rem',color:'var(--text-3)'}}>{d.acronym}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className={styles.team}>{d.team}</td>
-                  <td className={`mono ${styles.pts}`}>{d.points}</td>
-                  <td className={styles.barCol}>
+                  <td style={{color:'var(--text-2)',fontSize:'.82rem'}}>{d.team}</td>
+                  <td className="mono" style={{textAlign:'right',fontWeight:800,fontSize:'1rem'}}>{d.points_current}</td>
+                  <td>
                     <div className={styles.barBg}>
-                      <div className={styles.barFill} style={{ width: `${(d.points / maxPts) * 100}%`, backgroundColor: `#${d.colour}` }} />
+                      <div className={styles.barFill} style={{width:`${(d.points_current/maxPts)*100}%`,background:`#${d.colour}`}}/>
                     </div>
                   </td>
                 </tr>
@@ -144,28 +115,28 @@ export default function Standings() {
           </table>
         </div>
       ) : (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>POS</th>
-                <th>CONSTRUCTOR</th>
-                <th className="mono">PTS</th>
-                <th className={styles.barCol}></th>
-              </tr>
-            </thead>
+        <div className="dt-wrap">
+          <table className="dt">
+            <thead><tr>
+              <th style={{width:48}}>POS</th>
+              <th>CONSTRUCTOR</th>
+              <th className="mono" style={{textAlign:'right'}}>PTS</th>
+              <th style={{width:200}}></th>
+            </tr></thead>
             <tbody>
-              {constructorStandings.map((c) => (
-                <tr key={c.team} className={styles.row}>
-                  <td className={styles.pos}>{medal(c.position)}</td>
-                  <td className={styles.driver}>
-                    <span className={styles.driverBar} style={{ backgroundColor: `#${c.colour}` }} />
-                    <span className={styles.driverName}>{c.team}</span>
+              {teams.map(t => (
+                <tr key={t.team_name}>
+                  <td style={{textAlign:'center'}}>{medal(t.position_current)}</td>
+                  <td>
+                    <div className={styles.driver}>
+                      <span className={styles.bar} style={{background:`#${t.colour}`}}/>
+                      <span style={{fontWeight:700}}>{t.team_name}</span>
+                    </div>
                   </td>
-                  <td className={`mono ${styles.pts}`}>{c.points}</td>
-                  <td className={styles.barCol}>
+                  <td className="mono" style={{textAlign:'right',fontWeight:800,fontSize:'1rem'}}>{t.points_current}</td>
+                  <td>
                     <div className={styles.barBg}>
-                      <div className={styles.barFill} style={{ width: `${(c.points / maxPts) * 100}%`, backgroundColor: `#${c.colour}` }} />
+                      <div className={styles.barFill} style={{width:`${(t.points_current/maxPts)*100}%`,background:`#${t.colour}`}}/>
                     </div>
                   </td>
                 </tr>

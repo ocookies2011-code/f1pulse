@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Activity, RefreshCw, CloudRain, Thermometer, Wind, Flag, Zap, Radio } from 'lucide-react'
-import { buildLiveStandings, getLatestSession, getWeather, getRaceControl, formatLapTime, formatGap } from '../lib/openf1'
+import { buildLiveStandings, getLatestSession, getWeather, getRaceControl, fmt as formatLapTime, fmtGap as formatGap } from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
 import styles from './LiveTiming.module.css'
 
