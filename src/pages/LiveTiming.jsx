@@ -1,278 +1,317 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, RefreshCw, CloudRain, Thermometer, Wind, Flag, Zap, Radio, AlertTriangle } from 'lucide-react'
-import { buildLiveStandings, getLatestSession, getWeather, getRaceControl, fmt as formatLapTime, fmtGap as formatGap } from '../lib/openf1'
+import { Activity, RefreshCw, CloudRain, Thermometer, Wind, Flag, Zap, AlertTriangle, ChevronDown } from 'lucide-react'
+import {
+  buildLiveStandings, getLatestSession, getWeather, getRaceControl,
+  getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
+  getDrivers, fmt, fmtGap
+} from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
 import styles from './LiveTiming.module.css'
 
-const TYRE_MAP = { SOFT: 'S', MEDIUM: 'M', HARD: 'H', INTERMEDIATE: 'I', WET: 'W' }
+const TYRE_COLOURS = { SOFT:'#e10600', MEDIUM:'#f5a623', HARD:'#d8d8d8', INTERMEDIATE:'#39a847', WET:'#0067ff' }
+const TYRE_LABELS  = { SOFT:'S', MEDIUM:'M', HARD:'H', INTERMEDIATE:'I', WET:'W' }
 
-function TyreChip({ compound }) {
-  const k = compound?.toUpperCase()
-  const label = TYRE_MAP[k] ?? (compound?.[0] ?? '?')
+function TyreChip({ compound, age }) {
+  if (!compound) return <span className={styles.dash}>—</span>
+  const k   = compound.toUpperCase()
+  const lbl = TYRE_LABELS[k] ?? compound[0]
+  const col = TYRE_COLOURS[k] ?? '#888'
   return (
-    <span className={`${styles.tyreChip} ${styles[`tyre${label}`] ?? ''}`}>
-      <span className={`tyre ${label}`} />
-      {label}
+    <span className={styles.tyreChip}>
+      <span className={styles.tyreDot} style={{ background: col }} />
+      <span style={{ color: col, fontWeight: 700 }}>{lbl}</span>
+      {age != null && <span className={styles.tyreAge}>{age}</span>}
     </span>
   )
 }
 
-function MiniSectors({ segments }) {
-  // segments = [[s1segs], [s2segs], [s3segs]]
-  // 2049=green, 2051=purple, 2048=yellow, 2064=pit
-  const colMap = { 2049: 'g', 2051: 'p', 2048: 'y', 2064: 'pit', 0: 'off' }
+function MiniSectors({ sectors, segments, bestSectors }) {
+  // Colour each sector based on time vs session best
+  const secColour = (val, best) => {
+    if (!val || !best) return styles.secGrey
+    if (Math.abs(val - best) < 0.001) return styles.secPurple
+    return styles.secYellow
+  }
+  // Segment mini-bars: 2051=purple, 2049=green, 2048/else=yellow, 2064=pit
+  const segCol = v => v === 2051 ? styles.segPurple : v === 2049 ? styles.segGreen : v === 2064 ? styles.segPit : styles.segYellow
   return (
-    <div className={styles.miniSectors}>
-      {[0,1,2].map(si => (
-        <div key={si} className={styles.sectorGroup}>
-          {(segments[si] || []).slice(0, 8).map((v, i) => (
-            <span key={i} className={`${styles.seg} ${styles[`seg-${colMap[v] ?? 'off'}`]}`} />
+    <div className={styles.miniWrap}>
+      <div className={styles.sectorTimes}>
+        {[0,1,2].map(i => (
+          <span key={i} className={`mono ${styles.secTime} ${sectors[i] ? secColour(sectors[i], bestSectors[i]) : styles.secGrey}`}>
+            {sectors[i] ? sectors[i].toFixed(3) : '——'}
+          </span>
+        ))}
+      </div>
+      {segments?.some(sg => sg?.length > 0) && (
+        <div className={styles.segRow}>
+          {[0,1,2].map(si => (
+            <div key={si} className={styles.segGroup}>
+              {(segments[si] ?? []).slice(0,8).map((v, j) => (
+                <span key={j} className={`${styles.seg} ${segCol(v)}`} />
+              ))}
+            </div>
           ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
 
-function WeatherStrip({ weather }) {
-  if (!weather) return null
+function RCBadge({ msg }) {
+  const flag = msg.flag
+  if (flag === 'RED')    return <span className={`${styles.flagBadge} ${styles.flagRed}`}>🔴 RED FLAG</span>
+  if (flag === 'SAFETY CAR' || msg.category === 'SafetyCar') return <span className={`${styles.flagBadge} ${styles.flagSc}`}>🚗 SAFETY CAR</span>
+  if (flag === 'VIRTUAL SAFETY CAR') return <span className={`${styles.flagBadge} ${styles.flagSc}`}>VSC</span>
+  if (flag === 'YELLOW' || flag === 'DOUBLE YELLOW') return <span className={`${styles.flagBadge} ${styles.flagYellow}`}>⚠ YELLOW</span>
+  if (flag === 'GREEN')  return <span className={`${styles.flagBadge} ${styles.flagGreen}`}>🟢 TRACK CLEAR</span>
+  if (flag === 'CHEQUERED') return <span className={`${styles.flagBadge} ${styles.flagGreen}`}>🏁 CHEQUERED</span>
+  return null
+}
+
+function PenaltyCount({ rc }) {
+  const penalties = rc.filter(m => m.category === 'CarEvent' && m.message?.includes('PENALTY'))
+  const trackLimits = rc.filter(m => m.message?.includes('TRACK LIMITS') || m.message?.includes('DELETED'))
+  if (!penalties.length && !trackLimits.length) return <span className={styles.noPenalty}>No active penalties</span>
   return (
-    <div className={styles.weather}>
-      <span><Thermometer size={12} /> {weather.track_temperature}°C track</span>
-      <span><Thermometer size={12} /> {weather.air_temperature}°C air</span>
-      <span><Wind size={12} /> {weather.wind_speed} m/s</span>
-      {weather.rainfall > 0 && <span className={styles.rain}><CloudRain size={12} /> Wet</span>}
+    <div className={styles.penaltySummary}>
+      {penalties.length > 0 && <span className={styles.penTag}>{penalties.length} penalty</span>}
+      {trackLimits.length > 0 && <span className={styles.tlTag}>{trackLimits.length} TL violation</span>}
     </div>
   )
-}
-
-function RcMessage({ msg }) {
-  const cls = msg.flag === 'RED' ? styles.rcRed
-    : msg.flag === 'YELLOW' || msg.flag === 'DOUBLE YELLOW' ? styles.rcYellow
-    : msg.flag === 'GREEN' ? styles.rcGreen
-    : msg.category === 'SafetyCar' ? styles.rcSc
-    : ''
-  return <div className={`${styles.rcMsg} ${cls}`}>{msg.message}</div>
 }
 
 export default function LiveTiming() {
   const { isPremium } = useAuth()
-  const [standing, setStanding]     = useState([])
-  const [session,  setSession]      = useState(null)
-  const [weather,  setWeather]      = useState(null)
-  const [rc,       setRc]           = useState([])
-  const [loading,  setLoading]      = useState(true)
-  const [lastUpdate, setLastUpdate] = useState(null)
-  const [error,    setError]        = useState(null)
-  const [showMini, setShowMini]     = useState(false)
-  const [compact,  setCompact]      = useState(false)
+  const [standings,   setStandings]   = useState([])
+  const [session,     setSession]     = useState(null)
+  const [weather,     setWeather]     = useState(null)
+  const [rc,          setRc]          = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [lastUpdate,  setLastUpdate]  = useState(null)
+  const [error,       setError]       = useState(null)
+  const [showMini,    setShowMini]    = useState(false)
+  const [compact,     setCompact]     = useState(false)
+  const [drvChamp,    setDrvChamp]    = useState([])
+  const [teamChamp,   setTeamChamp]   = useState([])
+  const [champLoaded, setChampLoaded] = useState(false)
   const intervalRef = useRef(null)
 
-  const fetchAll = useCallback(async () => {
+  const fetchLive = useCallback(async () => {
     try {
-      const [sess, wthr, rcData, standings] = await Promise.all([
-        getLatestSession(),
-        getWeather('latest'),
-        getRaceControl('latest'),
-        buildLiveStandings('latest'),
-      ])
+      const sess      = await getLatestSession()
+      const wthr      = await getWeather('latest')
+      const rcData    = await getRaceControl('latest').catch(() => [])
+      const standing  = await buildLiveStandings('latest')
       setSession(sess)
       setWeather(wthr)
       setRc(rcData || [])
-      setStanding(standings)
+      setStandings(standing)
       setLastUpdate(new Date())
       setError(null)
-    } catch {
-      setError('Could not load live data. No active session or connection issue.')
+    } catch (e) {
+      setError('Could not load live data.')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => {
-    fetchAll()
-    const ms = isPremium ? 4000 : 10000
-    intervalRef.current = setInterval(fetchAll, ms)
-    return () => clearInterval(intervalRef.current)
-  }, [isPremium, fetchAll])
+  // Load championship standings separately (lower priority)
+  const fetchChamp = useCallback(async () => {
+    try {
+      const sess = await getBestStandingsSession(2026)
+      if (!sess) return
+      const driverList = await getDrivers(sess.session_key)
+      const drvMap = {}
+      for (const d of driverList) drvMap[d.driver_number] = d
+      const cd = await getChampionshipDrivers(sess.session_key).catch(() => [])
+      const ct = await getChampionshipTeams(sess.session_key).catch(() => [])
+      if (cd?.length) {
+        setDrvChamp(cd.sort((a,b) => a.position_current - b.position_current).slice(0,10).map(c => ({
+          pos: c.position_current,
+          name: drvMap[c.driver_number]?.full_name ?? `#${c.driver_number}`,
+          acronym: drvMap[c.driver_number]?.name_acronym ?? '???',
+          colour: drvMap[c.driver_number]?.team_colour ?? '555555',
+          pts: c.points_current ?? 0,
+        })))
+      }
+      if (ct?.length) {
+        setTeamChamp(ct.sort((a,b) => a.position_current - b.position_current).slice(0,11).map(c => {
+          const td = driverList.find(d => d.team_name === c.team_name)
+          return { pos: c.position_current, team: c.team_name, colour: td?.team_colour ?? '555555', pts: c.points_current ?? 0 }
+        }))
+      }
+      setChampLoaded(true)
+    } catch {}
+  }, [])
 
-  const lastRc = [...rc].reverse().slice(0, 4)
-  const hasRc  = lastRc.length > 0
+  useEffect(() => {
+    fetchLive()
+    fetchChamp()
+    const ms = isPremium ? 4000 : 10000
+    intervalRef.current = setInterval(fetchLive, ms)
+    return () => clearInterval(intervalRef.current)
+  }, [isPremium, fetchLive, fetchChamp])
+
+  // Latest RC flags for the top bar
+  const rcReversed = [...rc].reverse()
+  const latestFlag = rcReversed.find(m => ['RED','YELLOW','DOUBLE YELLOW','GREEN','SAFETY CAR','VIRTUAL SAFETY CAR','CHEQUERED'].includes(m.flag) || m.category === 'SafetyCar')
+  const recentRC   = rcReversed.slice(0, 8)
 
   return (
-    <div className="page">
-      {/* ── Header ── */}
-      <div className={styles.hd}>
-        <div className={styles.hdLeft}>
-          <h1 className={styles.title}>
-            <Activity size={18} strokeWidth={2.5} />
-            Live Timing
-          </h1>
-          {session && (
-            <div className={styles.sessionInfo}>
-              <span className={styles.sessionDot} />
-              {session.session_name} · {session.meeting_name}
+    <div className={styles.root}>
+      {/* ── Top bar ── */}
+      <div className={styles.topBar}>
+        <div className={styles.topBarInner}>
+          <div className={styles.topLeft}>
+            {session ? (
+              <>
+                <span className={styles.sessionDot} />
+                <span className={styles.sessionName}>{session.meeting_name}</span>
+                <span className={styles.sessionType}>{session.session_name}</span>
+                {weather && (
+                  <span className={styles.weatherInline}>
+                    <Thermometer size={11} /> {weather.track_temperature}°C TRC
+                    &nbsp;·&nbsp;
+                    <Thermometer size={11} /> {weather.air_temperature}°C AIR
+                    &nbsp;·&nbsp;
+                    {weather.humidity}% HUM
+                    {weather.rainfall > 0 && <span className={styles.wetBadge}><CloudRain size={10} /> WET</span>}
+                  </span>
+                )}
+              </>
+            ) : <span className={styles.noSession}>No active session</span>}
+          </div>
+          <div className={styles.topRight}>
+            {latestFlag && <RCBadge msg={latestFlag} />}
+            {!isPremium && (
+              <Link to="/premium" className={styles.proBadge}><Zap size={10} /> Pro: faster data</Link>
+            )}
+            <div className={styles.updateInfo}>
+              <RefreshCw size={10} className={loading ? styles.spinning : ''} />
+              {lastUpdate?.toLocaleTimeString('en-GB', { hour12: false })}
             </div>
-          )}
-        </div>
-        <div className={styles.hdRight}>
-          {!isPremium && (
-            <Link to="/premium" className={styles.proBadge}>
-              <Zap size={11} /> Get Pro — faster refresh
-            </Link>
-          )}
-          <button
-            className={`${styles.toggleBtn} ${compact ? styles.active : ''}`}
-            onClick={() => setCompact(v => !v)}
-            title="Compact view"
-          >
-            Compact
-          </button>
-          <button
-            className={`${styles.toggleBtn} ${showMini ? styles.active : ''}`}
-            onClick={() => setShowMini(v => !v)}
-            title="Mini sectors (Pro)"
-          >
-            Mini Sectors
-          </button>
-          <div className={styles.updateTime}>
-            <RefreshCw size={11} className={loading ? styles.spinning : ''} />
-            {lastUpdate ? lastUpdate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
+            <button className="btn btn-ghost btn-sm" style={{ padding: '4px 9px' }} onClick={fetchLive}>
+              <RefreshCw size={12} />
+            </button>
           </div>
-          <button className={`btn btn-ghost btn-sm`} onClick={fetchAll} style={{ padding: '5px 10px' }}>
-            <RefreshCw size={13} />
-          </button>
         </div>
       </div>
 
-      {/* ── Weather + RC ── */}
-      <div className={styles.metaRow}>
-        <WeatherStrip weather={weather} />
-        {hasRc && (
-          <div className={styles.rcRow}>
-            <Flag size={12} className={styles.rcIcon} />
-            {lastRc.slice(0, 1).map((m, i) => <RcMessage key={i} msg={m} />)}
+      {/* ── Column toggles ── */}
+      <div className={styles.toolBar}>
+        <div className={styles.toolBarInner}>
+          <div className={styles.toggleGroup}>
+            <button className={`${styles.toggle} ${compact ? styles.toggleOn : ''}`} onClick={() => setCompact(v=>!v)}>Compact</button>
+            <button className={`${styles.toggle} ${showMini ? styles.toggleOn : ''}`} onClick={() => setShowMini(v=>!v)}>
+              Mini Sectors {!isPremium && <Zap size={9} style={{ color:'var(--gold)', marginLeft:2 }} />}
+            </button>
           </div>
-        )}
+          <span className={styles.refreshNote}>{isPremium ? '~4s refresh (Pro)' : '~10s refresh · Upgrade for faster'}</span>
+        </div>
       </div>
 
-      {/* ── Race Control Panel ── */}
-      {hasRc && (
-        <details className={styles.rcPanel}>
-          <summary className={styles.rcSummary}>
-            <Flag size={12} /> Race Control Messages ({rc.length})
-          </summary>
-          <div className={styles.rcList}>
-            {lastRc.map((m, i) => <RcMessage key={i} msg={m} />)}
-          </div>
-        </details>
-      )}
-
-      {/* ── Table ── */}
+      {/* ── Main timing table ── */}
       {loading ? (
         <div className="spinner-wrap"><div className="spinner" /></div>
       ) : error ? (
-        <div className={styles.empty}>
-          <AlertTriangle size={28} style={{ color: 'var(--text-3)', marginBottom: 10 }} />
+        <div className={styles.emptyState}>
+          <AlertTriangle size={30} style={{ color:'var(--text-3)', marginBottom:10 }} />
           <p>{error}</p>
         </div>
-      ) : standing.length === 0 ? (
-        <div className={styles.empty}>
-          <Activity size={28} style={{ color: 'var(--text-3)', marginBottom: 10 }} />
-          <p>No active session. Data will appear when a session goes live.</p>
+      ) : standings.length === 0 ? (
+        <div className={styles.emptyState}>
+          <Activity size={30} style={{ color:'var(--text-3)', marginBottom:10 }} />
+          <p>No active session. Live data will appear here automatically.</p>
         </div>
       ) : (
         <div className={styles.tableWrap}>
           <table className={`${styles.table} ${compact ? styles.compact : ''}`}>
             <thead>
               <tr>
-                <th className={styles.thPos}>POS</th>
+                <th className={styles.thPit}>PIT</th>
+                <th className={styles.thPos}>#</th>
                 <th className={styles.thDriver}>DRIVER</th>
-                <th>BEST LAP</th>
-                <th>LAST LAP</th>
-                <th>GAP</th>
-                <th>INT</th>
+                <th>INTERVAL</th>
                 <th>TYRE</th>
-                <th className={styles.thAge}>AGE</th>
+                <th>BEST LAP</th>
+                <th className={styles.thLeader}>LEADER</th>
+                <th>LAST LAP</th>
+                {showMini && <th className={styles.thMini}>MINI SECTORS · LAST SECTORS · BEST SECTORS</th>}
                 <th className={styles.thLap}>LAP</th>
-                {showMini && <th className={styles.thMini}>SECTORS</th>}
               </tr>
             </thead>
             <tbody>
-              {standing.map((d, i) => {
-                const isLeader = i === 0
-                const isPit    = d.is_pit_out_lap
+              {standings.map((d, i) => {
+                const isP1      = i === 0
+                const isPit     = d.is_pit_out_lap
+                const isBestLap = d.is_overall_best
+                const rowClass  = `${styles.row} ${isPit ? styles.rowPit : ''} ${isP1 ? styles.rowP1 : ''}`
                 return (
-                  <tr
-                    key={d.driver_number}
-                    className={`${styles.row} ${isLeader ? styles.rowLeader : ''} ${isPit ? styles.rowPit : ''}`}
-                  >
+                  <tr key={d.driver_number} className={rowClass}>
+                    {/* Pit indicator */}
+                    <td className={styles.tdPit}>
+                      {d.pit_stops > 0 && <span className={styles.pitTag}>PIT</span>}
+                    </td>
+
                     {/* Position */}
                     <td className={styles.tdPos}>
-                      <span className={styles.posNum}>{d.position}</span>
+                      <span className={styles.posBox} style={{ borderColor: `#${d.team_colour}`, color: `#${d.team_colour}` }}>
+                        {d.position}
+                      </span>
                     </td>
 
                     {/* Driver */}
                     <td className={styles.tdDriver}>
-                      <span
-                        className={styles.teamBar}
-                        style={{ background: `#${d.team_colour}` }}
-                      />
-                      <div className={styles.driverInfo}>
+                      <span className={styles.teamBar} style={{ background:`#${d.team_colour}` }} />
+                      <div className={styles.driverBlock}>
                         <span className={styles.acronym}>{d.name_acronym}</span>
-                        <span className={styles.teamName}>{d.team_name?.split(' ')[0]}</span>
+                        <span className={styles.teamShort}>{d.team_name?.replace('F1 Team','').replace('Racing','').trim()}</span>
                       </div>
-                      <span className={styles.driverNum}>#{d.driver_number}</span>
-                    </td>
-
-                    {/* Best lap */}
-                    <td className={`mono ${isLeader ? styles.timePurple : styles.timeCell}`}>
-                      {formatLapTime(d.best_lap)}
-                    </td>
-
-                    {/* Last lap */}
-                    <td className={`mono ${styles.timeCell}`}>
-                      {formatLapTime(d.last_lap)}
-                    </td>
-
-                    {/* Gap */}
-                    <td className={`mono ${styles.gapCell}`}>
-                      {isLeader
-                        ? <span className={styles.leaderTag}>LEAD</span>
-                        : formatGap(d.gap_to_leader)
-                      }
                     </td>
 
                     {/* Interval */}
-                    <td className={`mono ${styles.intCell}`}>
-                      {isLeader ? '—' : formatGap(d.interval)}
+                    <td className={`mono ${styles.tdInterval}`}>
+                      {isP1
+                        ? <span className={styles.intervalLabel}>Interval</span>
+                        : <span className={styles.intervalVal}>{fmtGap(d.interval)}</span>
+                      }
                     </td>
 
                     {/* Tyre */}
-                    <td>
-                      {d.tyre ? <TyreChip compound={d.tyre} /> : <span className={styles.dash}>—</span>}
+                    <td><TyreChip compound={d.tyre} age={d.tyre_age} /></td>
+
+                    {/* Best lap */}
+                    <td className={`mono ${isBestLap ? styles.timePurple : styles.timeNormal}`}>
+                      {fmt(d.best_lap)}
                     </td>
 
-                    {/* Age */}
-                    <td className={`mono ${styles.ageCell}`}>
-                      {d.tyre_age ?? <span className={styles.dash}>—</span>}
+                    {/* Gap to leader */}
+                    <td className={`mono ${styles.tdGap}`}>
+                      {isP1
+                        ? <span className={styles.leaderLabel}>Leader</span>
+                        : fmtGap(d.gap_to_leader)
+                      }
                     </td>
 
-                    {/* Lap */}
-                    <td className={`mono ${styles.lapCell}`}>
-                      {d.lap_number ?? <span className={styles.dash}>—</span>}
+                    {/* Last lap */}
+                    <td className={`mono ${d.is_personal_best ? styles.timeGreen : styles.timeNormal}`}>
+                      {fmt(d.last_lap)}
                     </td>
 
                     {/* Mini sectors */}
                     {showMini && (
                       <td>
                         {isPremium
-                          ? <MiniSectors segments={d.segments ?? [[],[],[]]} />
-                          : <Link to="/premium" className={styles.lockLink}><Zap size={11} /> Pro</Link>
+                          ? <MiniSectors sectors={d.sectors} segments={d.segments} bestSectors={d.best_sectors} />
+                          : <Link to="/premium" className={styles.lockLink}><Zap size={10} /> Pro</Link>
                         }
                       </td>
                     )}
+
+                    {/* Lap */}
+                    <td className={`mono ${styles.tdLap}`}>{d.lap_number || '—'}</td>
                   </tr>
                 )
               })}
@@ -281,17 +320,64 @@ export default function LiveTiming() {
         </div>
       )}
 
+      {/* ── Bottom panels ── */}
+      <div className={styles.bottomPanels}>
+        {/* Driver championship */}
+        <div className={styles.champPanel}>
+          <div className={styles.champTitle}>DRIVER CHAMPIONSHIP</div>
+          {champLoaded ? drvChamp.map(d => (
+            <div key={d.acronym} className={styles.champRow}>
+              <span className={styles.champPos}>{d.pos}</span>
+              <span className={styles.champDot} style={{ background:`#${d.colour}` }} />
+              <span className={styles.champName}>{d.name}</span>
+              <span className={styles.champPts}>{d.pts}</span>
+            </div>
+          )) : <div className={styles.champLoading}>Loading…</div>}
+        </div>
+
+        {/* Team championship */}
+        <div className={styles.champPanel}>
+          <div className={styles.champTitle}>TEAM CHAMPIONSHIP</div>
+          {champLoaded ? teamChamp.map(t => (
+            <div key={t.team} className={styles.champRow}>
+              <span className={styles.champPos}>{t.pos}</span>
+              <span className={styles.champDot} style={{ background:`#${t.colour}` }} />
+              <span className={styles.champName}>{t.team?.replace(' F1 Team','')}</span>
+              <span className={styles.champPts}>{t.pts}</span>
+            </div>
+          )) : <div className={styles.champLoading}>Loading…</div>}
+        </div>
+
+        {/* Penalties / Race Control */}
+        <div className={`${styles.champPanel} ${styles.rcBigPanel}`}>
+          <div className={styles.champTitle} style={{ color:'var(--red)' }}>PENALTIES</div>
+          <PenaltyCount rc={rc} />
+          <div className={styles.champTitle} style={{ marginTop:12 }}>RACE CONTROL</div>
+          <div className={styles.rcFeed}>
+            {recentRC.length === 0
+              ? <span className={styles.noPenalty}>No messages</span>
+              : recentRC.map((m, i) => (
+                  <div key={i} className={`${styles.rcLine} ${
+                    m.flag === 'RED' ? styles.rcRed
+                    : m.flag?.includes('YELLOW') ? styles.rcYellow
+                    : m.flag === 'GREEN' || m.flag === 'CHEQUERED' ? styles.rcGreen
+                    : m.category === 'SafetyCar' ? styles.rcOrange
+                    : ''
+                  }`}>
+                    {m.message}
+                  </div>
+                ))
+            }
+          </div>
+        </div>
+      </div>
+
       {/* ── Pro upsell ── */}
       {!isPremium && !loading && (
         <div className={styles.upsell}>
-          <div className={styles.upsellLeft}>
-            <Zap size={15} style={{ color: 'var(--gold)', flexShrink: 0 }} />
-            <div>
-              <strong>F1Pulse Pro</strong>
-              <span className={styles.upsellSub}> — Live mini-sectors, 3s refresh, team radio & track map</span>
-            </div>
-          </div>
-          <Link to="/premium" className="btn btn-gold btn-sm">Upgrade — £3.99/mo</Link>
+          <Zap size={14} style={{ color:'var(--gold)', flexShrink:0 }} />
+          <div><strong>F1Pulse Pro</strong> — mini-sectors, ~3s refresh, team radio, track map</div>
+          <Link to="/premium" className="btn btn-gold btn-sm" style={{ marginLeft:'auto' }}>Upgrade £3.99/mo</Link>
         </div>
       )}
     </div>

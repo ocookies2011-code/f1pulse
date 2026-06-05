@@ -1,0 +1,82 @@
+/* ── Teams grid ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+
+.card {
+  position: relative; display: block; overflow: hidden;
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); transition: all 0.18s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 10px 36px rgba(0,0,0,0.3); border-color: var(--border-bright); }
+.cardAccent { height: 3px; width: 100%; }
+.cardInner  { padding: 20px; }
+
+.cardTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.teamCircle {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 2px solid; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-3);
+}
+.teamInitial { font-size: 1.4rem; font-weight: 900; }
+.champBadge {
+  font-size: 0.72rem; font-weight: 700; border: 1px solid; border-radius: 20px;
+  padding: 4px 10px; white-space: nowrap;
+}
+.cardName { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 3px; }
+.cardFull { font-size: 0.77rem; color: var(--text-3); margin-bottom: 10px; }
+.cardMeta { display: flex; gap: 12px; font-size: 0.78rem; color: var(--text-2); margin-bottom: 10px; }
+.cardMeta span { display: flex; align-items: center; gap: 4px; }
+.cardDrivers { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.driverPill { font-size: 0.73rem; font-weight: 700; background: var(--bg-3); border: 1px solid var(--border-bright); border-radius: 20px; padding: 3px 10px; color: var(--text-2); }
+.cardStats { display: flex; gap: 0; border-top: 1px solid var(--border); padding-top: 12px; margin-bottom: 12px; }
+.stat { flex: 1; text-align: center; padding: 0 6px; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.statVal { display: block; font-size: 0.9rem; font-weight: 800; margin-bottom: 2px; }
+.statLbl { display: block; font-size: 0.65rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; }
+.viewProfile { font-size: 0.78rem; color: var(--text-3); transition: color 0.12s; }
+.card:hover .viewProfile { color: var(--text-2); }
+
+/* ── Team profile ── */
+.backLink { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-2); margin-bottom: 20px; transition: color 0.12s; }
+.backLink:hover { color: var(--text); }
+
+.hero {
+  border: 1px solid; border-radius: var(--radius-lg); padding: 32px;
+  display: flex; gap: 40px; flex-wrap: wrap; margin-bottom: 24px;
+}
+.heroLeft  { flex: 1; min-width: 260px; }
+.heroRight { flex-shrink: 0; }
+.heroBadge { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid; border-radius: 20px; padding: 3px 11px; margin-bottom: 12px; }
+.heroName  { font-size: 2.2rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 4px; }
+.heroFull  { font-size: 0.9rem; color: var(--text-3); margin-bottom: 14px; }
+.heroBio   { font-size: 0.875rem; color: var(--text-2); line-height: 1.65; margin-bottom: 16px; max-width: 520px; }
+.heroMeta  { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.83rem; color: var(--text-2); }
+.heroMeta span { display: flex; align-items: center; gap: 5px; }
+.heroStats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.heroStat  { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; text-align: center; }
+.heroStatVal { display: block; font-size: 1.4rem; font-weight: 900; margin-bottom: 3px; }
+.heroStatLbl { display: block; font-size: 0.68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.champRow {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px;
+  font-size: 0.875rem; color: var(--text-2); margin-bottom: 24px;
+}
+.champPts { font-weight: 800; margin-left: auto; }
+
+.sectionTitle { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; }
+
+.driversGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.driverCard  { border: 1px solid; border-radius: var(--radius-lg); overflow: hidden; }
+.driverTop   { padding: 20px; display: flex; align-items: center; justify-content: space-between; min-height: 80px; }
+.headshot    { height: 80px; width: auto; object-fit: contain; }
+.driverNum   { font-size: 2rem; font-weight: 900; font-family: var(--font-mono); opacity: 0.9; }
+.driverInfo  { padding: 14px 16px; }
+.driverName  { font-weight: 800; font-size: 0.95rem; margin-bottom: 3px; }
+.driverAcro  { font-size: 0.78rem; color: var(--text-3); margin-bottom: 6px; }
+.driverPts   { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text-2); }
+
+@media (max-width: 768px) {
+  .hero { flex-direction: column; padding: 20px; }
+  .heroStats { grid-template-columns: 1fr 1fr; }
+}

@@ -1,156 +1,190 @@
 import { useEffect, useState } from 'react'
-import { MapPin, Clock, Calendar as CalIcon } from 'lucide-react'
+import { Calendar as CalIcon, MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { getMeetings, getSessions, flagUrl } from '../lib/openf1'
-import { format, isPast, isFuture, parseISO, formatDistanceToNow, differenceInDays } from 'date-fns'
+import { format, isPast, isFuture, parseISO, formatDistanceToNow } from 'date-fns'
 import styles from './Calendar.module.css'
 
-function Countdown({ target }) {
-  const [txt, setTxt] = useState('')
+function useLiveCountdown(target) {
+  const [diff, setDiff] = useState(null)
   useEffect(() => {
+    if (!target) return
     function tick() {
-      const d = new Date(target) - Date.now()
-      if (d <= 0) { setTxt('Starting soon'); return }
-      const dy = Math.floor(d/86400000), h = Math.floor((d%86400000)/3600000)
-      const m = Math.floor((d%3600000)/60000), s = Math.floor((d%60000)/1000)
-      setTxt(`${dy}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`)
+      const d = new Date(target) - new Date()
+      if (d <= 0) { setDiff('LIVE NOW'); return }
+      const days = Math.floor(d / 86400000)
+      const hrs  = Math.floor((d % 86400000) / 3600000)
+      const mins = Math.floor((d % 3600000) / 60000)
+      const secs = Math.floor((d % 60000) / 1000)
+      if (days > 0) setDiff(`${days}d ${String(hrs).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`)
+      else setDiff(`${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`)
     }
-    tick(); const id = setInterval(tick, 1000); return () => clearInterval(id)
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
   }, [target])
-  return <span className={styles.countdown}>{txt}</span>
+  return diff
+}
+
+const SESSION_ORDER = ['Practice 1','Practice 2','Practice 3','Sprint Qualifying','Sprint','Qualifying','Race']
+
+function getNextSession(sessions) {
+  const now = new Date()
+  return sessions
+    .filter(s => new Date(s.date_start) > now)
+    .sort((a,b) => new Date(a.date_start) - new Date(b.date_start))[0]
+}
+
+function MeetingCard({ meeting, round, isNext, sessions }) {
+  const [open, setOpen] = useState(isNext)
+  const done = isPast(parseISO(meeting.date_end ?? meeting.date_start))
+  const flag = meeting.country_flag || flagUrl(meeting.country_code)
+  const nextSess = getNextSession(sessions)
+  const raceSession = sessions.find(s => s.session_name === 'Race')
+  const raceCd = useLiveCountdown(raceSession?.date_start)
+
+  return (
+    <div className={`${styles.meetingCard} ${done ? styles.done : ''} ${isNext ? styles.isNext : ''}`}>
+      {/* Card header */}
+      <div className={styles.cardHd} onClick={() => setOpen(v => !v)}>
+        <div className={styles.cardHdLeft}>
+          <span className={styles.roundBadge}>R{round}</span>
+          {flag && <img src={flag} alt={meeting.country_name} className={styles.flagImg} onError={e=>e.target.style.display='none'} />}
+          <div>
+            <div className={styles.meetingName}>{meeting.meeting_name}</div>
+            <div className={styles.meetingMeta}>
+              <MapPin size={10} /> {meeting.circuit_short_name} &nbsp;·&nbsp; {format(parseISO(meeting.date_start), 'd MMM yyyy')}
+            </div>
+          </div>
+        </div>
+        <div className={styles.cardHdRight}>
+          {done && <span className={styles.donePill}>COMPLETE</span>}
+          {isNext && <span className={styles.nextPill}>NEXT</span>}
+          {!done && !isNext && raceSession && (
+            <span className={styles.futureMeta}>{formatDistanceToNow(parseISO(raceSession.date_start), { addSuffix: true })}</span>
+          )}
+          <button className={styles.chevron}>{open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</button>
+        </div>
+      </div>
+
+      {/* Expandable schedule */}
+      {open && (
+        <div className={styles.schedule}>
+          {isNext && nextSess && (
+            <div className={styles.nextSessionBanner}>
+              <Clock size={12} />
+              <span>Next: <strong>{nextSess.session_name}</strong></span>
+              <NextSessionCd target={nextSess.date_start} />
+            </div>
+          )}
+          {SESSION_ORDER.map(sName => {
+            const s = sessions.find(x => x.session_name === sName)
+            if (!s) return null
+            const sessDate = parseISO(s.date_start)
+            const sessDone = isPast(sessDate)
+            const isLive   = !sessDone && new Date() > new Date(s.date_start) - 60000
+            return (
+              <div key={sName} className={`${styles.sessRow} ${sessDone ? styles.sessDone : ''}`}>
+                <span className={styles.sessName}>{sName}</span>
+                <span className={styles.sessDate}>{format(sessDate, 'dd/MM, HH:mm')}</span>
+                {sessDone
+                  ? <span className={styles.sessDoneBadge}>✓</span>
+                  : <span className={styles.sessFuture}>{format(sessDate, 'd MMM')}</span>
+                }
+              </div>
+            )
+          })}
+          {isNext && raceSession && !isPast(parseISO(raceSession.date_start)) && (
+            <div className={styles.raceCountdown}>
+              <span>Race in</span>
+              <span className={styles.raceCountdownVal}>{raceCd}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NextSessionCd({ target }) {
+  const cd = useLiveCountdown(target)
+  return <span className={styles.nextSessCd}>{cd}</span>
 }
 
 export default function Calendar() {
   const [meetings, setMeetings] = useState([])
-  const [sessions, setSessions] = useState({}) // meeting_key → sessions[]
-  const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState(null)
+  const [sessMap,  setSessMap]  = useState({})
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [mtgs, sess] = await Promise.all([
-          getMeetings(2026),
-          getSessions({ year: 2026 })
-        ])
-        const races = mtgs
-          .filter(m => !m.meeting_name?.toLowerCase().includes('testing'))
-          .sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
-        setMeetings(races)
-        // Group sessions by meeting_key
-        const map = {}
-        for (const s of sess) {
-          if (!map[s.meeting_key]) map[s.meeting_key] = []
-          map[s.meeting_key].push(s)
-        }
-        setSessions(map)
-      } catch(e) { console.error(e) } finally { setLoading(false) }
-    }
-    load()
+    getMeetings(2026).then(async data => {
+      const races = data
+        .filter(m => !m.meeting_name?.toLowerCase().includes('testing'))
+        .sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
+      setMeetings(races)
+
+      // Load sessions for all meetings
+      const map = {}
+      for (const m of races) {
+        try {
+          const sess = await getSessions({ meeting_key: m.meeting_key })
+          map[m.meeting_key] = sess.sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
+        } catch { map[m.meeting_key] = [] }
+      }
+      setSessMap(map)
+    }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
-  const now = new Date()
-  const nextMeeting = meetings.find(m => isFuture(parseISO(m.date_start)))
-  // Current meeting = sessions happening now (started but not fully ended)
-  const currentMeeting = meetings.find(m => {
-    const s = parseISO(m.date_start), e = m.date_end ? parseISO(m.date_end) : s
-    return s <= now && now <= new Date(e.getTime() + 3*24*60*60*1000)
-  })
-  const heroMeeting = currentMeeting || nextMeeting
+  const upcoming = meetings.filter(m => isFuture(parseISO(m.date_start)))
+  const nextRace  = upcoming[0]
+  const past      = meetings.filter(m => isPast(parseISO(m.date_end ?? m.date_start)))
+  const future    = meetings.filter(m => !isPast(parseISO(m.date_end ?? m.date_start)))
 
-  function sessionStatus(s) {
-    const start = parseISO(s.date_start)
-    const end = s.date_end ? parseISO(s.date_end) : new Date(start.getTime() + 2*60*60*1000)
-    if (now >= start && now <= end) return 'live'
-    if (now > end) return 'done'
-    return 'upcoming'
-  }
+  const completedCount = past.length
+  const remainingCount = future.length
 
   return (
     <div className="page">
-      <div className="page-header">
-        <div><h1 className="page-title-old"><CalIcon size={20}/> 2026 Race Calendar</h1>
-        <p className="page-sub">Formula 1 World Championship — {meetings.length} rounds</p></div>
+      <div className="page-hd">
+        <h1><CalIcon size={20} /> 2026 Race Calendar</h1>
+        <p>{completedCount} races complete · {remainingCount} remaining</p>
       </div>
 
-      {loading ? <div className="center-spin"><div className="spinner"/></div> : (
-        <>
-          {/* Hero next/current race */}
-          {heroMeeting && (
-            <div className={styles.hero}>
-              <div className={styles.heroLeft}>
-                <div className={styles.heroLabel}>{currentMeeting ? '🔴 RACE WEEKEND LIVE' : 'NEXT RACE'}</div>
-                <div className={styles.heroName}>{heroMeeting.meeting_name}</div>
-                <div className={styles.heroMeta}>
-                  <span><MapPin size={12}/> {heroMeeting.circuit_short_name}, {heroMeeting.country_name}</span>
-                  <span><Clock size={12}/> {format(parseISO(heroMeeting.date_start), 'd MMM yyyy')}</span>
-                </div>
-              </div>
-              <div className={styles.heroRight}>
-                {heroMeeting.country_code && (
-                  <img src={flagUrl(heroMeeting.country_code, '64x48')} alt={heroMeeting.country_name}
-                    className={styles.heroFlag} onError={e=>e.target.style.display='none'}/>
-                )}
-                {nextMeeting && !currentMeeting && <Countdown target={heroMeeting.date_start}/>}
-              </div>
-            </div>
+      {loading ? (
+        <div className="spinner-wrap"><div className="spinner" /></div>
+      ) : (
+        <div className={styles.layout}>
+          {/* Upcoming */}
+          {future.length > 0 && (
+            <section className={styles.section}>
+              <div className={styles.sectionLabel}>Upcoming Races</div>
+              {future.map((m, i) => (
+                <MeetingCard
+                  key={m.meeting_key}
+                  meeting={m}
+                  round={meetings.indexOf(m) + 1}
+                  isNext={m === nextRace}
+                  sessions={sessMap[m.meeting_key] ?? []}
+                />
+              ))}
+            </section>
           )}
 
-          {/* Race grid */}
-          <div className={styles.grid}>
-            {meetings.map((m, i) => {
-              const started = parseISO(m.date_start) <= now
-              const endDate = m.date_end ? parseISO(m.date_end) : parseISO(m.date_start)
-              const fullyDone = endDate < now && differenceInDays(now, endDate) > 0
-              const isNext = m === nextMeeting
-              const isCurrent = m === currentMeeting
-              const meetSessions = (sessions[m.meeting_key] || []).sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
-              const flag = flagUrl(m.country_code)
-
-              return (
-                <div key={m.meeting_key}
-                  className={`${styles.card} ${fullyDone?styles.done:''} ${isNext?styles.next:''} ${isCurrent?styles.current:''}`}
-                  onClick={() => setExpanded(expanded === m.meeting_key ? null : m.meeting_key)}
-                >
-                  <div className={styles.cardTop}>
-                    <span className={styles.round}>R{i+1}</span>
-                    {fullyDone && <span className={styles.badge}>COMPLETE</span>}
-                    {isNext && <span className={`${styles.badge} ${styles.badgeNext}`}>NEXT</span>}
-                    {isCurrent && <span className={`${styles.badge} ${styles.badgeLive}`}><span className="live-dot"/>LIVE</span>}
-                  </div>
-                  {flag && <img src={flag} alt={m.country_name} className={styles.flag} onError={e=>e.target.style.display='none'}/>}
-                  <div className={styles.cardName}>{m.meeting_name}</div>
-                  <div className={styles.cardCircuit}><MapPin size={10}/> {m.circuit_short_name}</div>
-                  <div className={styles.cardDate}>
-                    {format(parseISO(m.date_start), 'd MMM')}
-                    {m.date_end && m.date_end !== m.date_start ? ` – ${format(parseISO(m.date_end),'d MMM')}` : ''}
-                  </div>
-                  {!fullyDone && !isCurrent && (
-                    <div className={styles.cardIn}>
-                      {isNext ? <Countdown target={m.date_start}/> : formatDistanceToNow(parseISO(m.date_start),{addSuffix:true})}
-                    </div>
-                  )}
-
-                  {/* Session breakdown when expanded */}
-                  {expanded === m.meeting_key && meetSessions.length > 0 && (
-                    <div className={styles.sessions} onClick={e=>e.stopPropagation()}>
-                      {meetSessions.map(s => {
-                        const st = sessionStatus(s)
-                        return (
-                          <div key={s.session_key} className={`${styles.sess} ${st==='live'?styles.sessLive:st==='done'?styles.sessDone:''}`}>
-                            <span className={styles.sessName}>{s.session_name}</span>
-                            <span className={styles.sessDate}>{format(parseISO(s.date_start),'d MMM HH:mm')}</span>
-                            {st==='live' && <span className={styles.sessLiveDot}><span className="live-dot"/>LIVE</span>}
-                            {st==='done' && <span className={styles.sessDoneLabel}>Done</span>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </>
+          {/* Past */}
+          {past.length > 0 && (
+            <section className={styles.section}>
+              <div className={styles.sectionLabel}>Completed</div>
+              {[...past].reverse().map((m) => (
+                <MeetingCard
+                  key={m.meeting_key}
+                  meeting={m}
+                  round={meetings.indexOf(m) + 1}
+                  isNext={false}
+                  sessions={sessMap[m.meeting_key] ?? []}
+                />
+              ))}
+            </section>
+          )}
+        </div>
       )}
     </div>
   )

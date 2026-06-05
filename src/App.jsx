@@ -7,6 +7,7 @@ import Standings from './pages/Standings'
 import Analytics from './pages/Analytics'
 import Calendar from './pages/Calendar'
 import Circuits from './pages/Circuits'
+import { TeamsList, TeamProfile } from './pages/Teams'
 import Premium from './pages/Premium'
 import Auth from './pages/Auth'
 import Replay from './pages/Replay'
@@ -18,16 +19,18 @@ export default function App() {
       <BrowserRouter>
         <Navbar />
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/live" element={<LiveTiming />} />
-          <Route path="/standings" element={<Standings />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/circuits" element={<Circuits />} />
-          <Route path="/premium" element={<Premium />} />
-          <Route path="/replay" element={<Replay />} />
-          <Route path="/login" element={<Auth />} />
-          <Route path="/signup" element={<Auth />} />
+          <Route path="/"           element={<Home />} />
+          <Route path="/live"       element={<LiveTiming />} />
+          <Route path="/standings"  element={<Standings />} />
+          <Route path="/analytics"  element={<Analytics />} />
+          <Route path="/calendar"   element={<Calendar />} />
+          <Route path="/circuits"   element={<Circuits />} />
+          <Route path="/teams"      element={<TeamsList />} />
+          <Route path="/teams/:name" element={<TeamProfile />} />
+          <Route path="/replay"     element={<Replay />} />
+          <Route path="/premium"    element={<Premium />} />
+          <Route path="/login"      element={<Auth />} />
+          <Route path="/signup"     element={<Auth />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
