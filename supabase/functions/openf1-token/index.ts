@@ -1,26 +1,21 @@
-import { serve } from 'https://deno.land/x/sift@0.6.0/mod.ts'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
+}
 
-const OPENF1_TOKEN_URL = 'https://api.openf1.org/token'
-
-serve(async (req: Request) => {
-  // CORS
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, content-type',
-      },
-    })
+    return new Response(null, { headers: corsHeaders })
   }
 
   const username = Deno.env.get('OPENF1_USERNAME')
   const password = Deno.env.get('OPENF1_PASSWORD')
 
   if (!username || !password) {
-    return new Response(JSON.stringify({ error: 'OpenF1 credentials not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
+    return new Response(
+      JSON.stringify({ error: 'OpenF1 credentials not configured' }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
   }
 
   try {
@@ -28,7 +23,7 @@ serve(async (req: Request) => {
     params.append('username', username)
     params.append('password', password)
 
-    const res = await fetch(OPENF1_TOKEN_URL, {
+    const res = await fetch('https://api.openf1.org/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params,
@@ -36,25 +31,25 @@ serve(async (req: Request) => {
 
     if (!res.ok) {
       const text = await res.text()
-      return new Response(JSON.stringify({ error: `OpenF1 auth failed: ${res.status}`, detail: text }), {
-        status: res.status,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
+      return new Response(
+        JSON.stringify({ error: `OpenF1 auth failed: ${res.status}`, detail: text }),
+        { status: res.status, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
     }
 
     const data = await res.json()
-    // Return token to client — they use it as Bearer for direct OpenF1 REST calls
-    return new Response(JSON.stringify({
-      access_token: data.access_token,
-      expires_in: data.expires_in ?? '3600',
-      token_type: data.token_type ?? 'bearer',
-    }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
+    return new Response(
+      JSON.stringify({
+        access_token: data.access_token,
+        expires_in: data.expires_in ?? '3600',
+        token_type: data.token_type ?? 'bearer',
+      }),
+      { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
+    return new Response(
+      JSON.stringify({ error: String(e) }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
   }
 })
