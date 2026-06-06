@@ -366,3 +366,58 @@
 /* Speed trap column */
 .thSpeed { width: 38px; text-align: right !important; padding-right: 6px !important; font-size: 0.55rem !important; }
 .tdSpeed { text-align: right; padding-right: 6px !important; }
+
+.thSecCell {
+  width: 56px; text-align: right !important;
+  padding-right: 8px !important; padding-left: 2px !important;
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em;
+}
+
+/* ── Tablet: stack vertically ── */
+@media (max-width: 1024px) {
+  .rightPanel { width: clamp(300px, 34%, 420px); }
+}
+
+@media (max-width: 900px) {
+  .mainRow { flex-direction: column; height: auto; overflow: visible; }
+  .root { height: auto; overflow: auto; }
+  .tableCol { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); overflow: visible; }
+  .tableScroll { overflow-x: auto; }
+  .rightPanel { width: 100%; height: 340px; min-height: 340px; flex-shrink: 0; }
+  /* Hide heavy columns on tablet */
+  .thMini, .tdMini { display: none !important; }
+}
+
+/* ── Mobile: ultra compact ── */
+@media (max-width: 600px) {
+  .topBarInner { padding: 0 8px; height: 30px; gap: 6px; }
+  .sessionType { font-size: 0.65rem !important; }
+  .weatherInline { display: none !important; }
+  .wLabel { display: none; }
+  .toolBar { display: none; }
+  .rightPanel { height: 280px; }
+  /* Mobile table: hide less important columns */
+  .thMini, .tdMini,
+  .thSpeed, .tdSpeed,
+  .thSecCell:nth-child(n+10), td.tdSecCell:nth-child(n+10) { display: none !important; }
+  /* Compact row height */
+  .row td { padding: 4px 6px !important; }
+  .acronym { font-size: 0.8rem !important; }
+  .teamShort { font-size: 0.58rem !important; }
+  .posNum { width: 18px !important; height: 18px !important; font-size: 0.72rem !important; }
+  .tyreImg { width: 16px !important; height: 16px !important; }
+  /* Bottom panels: stack */
+  .bottomPanels { flex-direction: column !important; gap: 0 !important; }
+  .champPanel { min-width: unset !important; }
+  /* Show weather inline in top bar on mobile */
+  .topLeft { gap: 5px; }
+}
+/* Mobile weather in toolbar */
+.mobileWeather {
+  display: none;
+  font-size: 0.65rem;
+  color: var(--text-2);
+}
+@media (max-width: 600px) {
+  .mobileWeather { display: block; }
+}

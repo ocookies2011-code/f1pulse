@@ -127,17 +127,40 @@ function TelemetryModal({ driver, session, onClose }) {
 }
 
 const CIRCUIT_SLUGS = {
-  'Monaco':'monaco','Silverstone':'silverstone','Monza':'monza','Spa':'spa',
-  'Suzuka':'suzuka','Albert Park':'albert_park','Sakhir':'bahrain','Jeddah':'jeddah',
-  'Miami':'miami','Imola':'imola','Barcelona':'barcelona','Budapest':'budapest',
-  'Zandvoort':'zandvoort','Baku':'baku','Singapore':'singapore','Austin':'austin',
-  'Mexico City':'mexico','Spielberg':'spielberg','Yas Marina':'yas_marina',
-  'Las Vegas':'las_vegas','Lusail':'losail','São Paulo':'sao_paulo','Montréal':'villeneuve',
-  'Shanghai':'shanghai',
+  'Monaco':'monaco','Monte Carlo':'monaco','Monte-Carlo':'monaco',
+  'Silverstone':'silverstone','Monza':'monza','Spa':'spa','Spa-Francorchamps':'spa',
+  'Suzuka':'suzuka','Albert Park':'albert_park','Melbourne':'albert_park',
+  'Sakhir':'bahrain','Bahrain':'bahrain','Jeddah':'jeddah','Saudi Arabia':'jeddah',
+  'Miami':'miami','Miami Gardens':'miami',
+  'Imola':'imola','Emilia Romagna':'imola',
+  'Barcelona':'barcelona','Catalunya':'barcelona',
+  'Budapest':'budapest','Hungaroring':'budapest',
+  'Zandvoort':'zandvoort','Netherlands':'zandvoort',
+  'Baku':'baku','Azerbaijan':'baku',
+  'Singapore':'singapore',
+  'Austin':'austin','COTA':'austin','United States':'austin',
+  'Mexico City':'mexico','Mexico':'mexico',
+  'Spielberg':'spielberg','Red Bull Ring':'spielberg','Austria':'spielberg',
+  'Yas Marina':'yas_marina','Abu Dhabi':'yas_marina',
+  'Las Vegas':'las_vegas',
+  'Lusail':'losail','Losail':'losail','Qatar':'losail',
+  'São Paulo':'sao_paulo','Sao Paulo':'sao_paulo','Interlagos':'sao_paulo','Brazil':'sao_paulo',
+  'Montréal':'villeneuve','Montreal':'villeneuve','Villeneuve':'villeneuve','Canada':'villeneuve',
+  'Shanghai':'shanghai','China':'shanghai',
 }
-function getCircuitSlug(shortName) {
-  if (!shortName) return null
-  return CIRCUIT_SLUGS[shortName] ?? shortName.toLowerCase().replace(/[^a-z0-9]/g,'_')
+function getCircuitSlug(name) {
+  if (!name) return null
+  // Direct match
+  if (CIRCUIT_SLUGS[name]) return CIRCUIT_SLUGS[name]
+  // Case-insensitive scan
+  const lower = name.toLowerCase()
+  for (const [key, val] of Object.entries(CIRCUIT_SLUGS)) {
+    if (key.toLowerCase() === lower) return val
+    if (lower.includes(key.toLowerCase())) return val
+    if (key.toLowerCase().includes(lower)) return val
+  }
+  // Last resort: sanitize the name itself
+  return lower.replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') || null
 }
 
 // ── Right panel: full track map with toggles + team radio + race control ──────
@@ -603,7 +626,13 @@ export default function LiveTiming() {
           <div className={styles.toggleGroup}>
             <button className={`${styles.toggle} ${compact?styles.toggleOn:''}`} onClick={()=>setCompact(v=>!v)}>Compact</button>
           </div>
-          <span className={styles.refreshNote}>{isPremium ? '⚡ ~3s live · positions 2s' : '~8s refresh · Go Pro for faster'}</span>
+          {weather && (
+            <span className={styles.mobileWeather}>
+              🌡 {weather.track_temperature?.toFixed(0)}° TRC · {weather.air_temperature?.toFixed(0)}° AIR
+              {weather.rainfall > 0 && ' 🌧 WET'}
+            </span>
+          )}
+          <span className={styles.refreshNote}>{isPremium ? '⚡ ~3s · ±0.001s' : '~8s refresh'}</span>
         </div>
       </div>
 
@@ -632,18 +661,12 @@ export default function LiveTiming() {
                     <th className={styles.thNum}>LEADER</th>
                     <th className={styles.thNum}>LAST LAP</th>
                     <th className={styles.thMini}>MINI SECTORS</th>
-                    <th className={styles.thSecGroup} colSpan={3} style={{borderRight:'1px solid rgba(255,255,255,0.06)'}}>
-                      LAST SECTORS&nbsp;
-                      <span style={{color:'#3671C6',fontSize:'0.55rem'}}>S1</span>
-                      <span style={{color:'#E8002D',fontSize:'0.55rem'}}> S2</span>
-                      <span style={{color:'#FF8000',fontSize:'0.55rem'}}> S3</span>
-                    </th>
-                    <th className={styles.thSecGroup} colSpan={3}>
-                      BEST SECTORS&nbsp;
-                      <span style={{color:'#3671C6',fontSize:'0.55rem',opacity:0.7}}>S1</span>
-                      <span style={{color:'#E8002D',fontSize:'0.55rem',opacity:0.7}}> S2</span>
-                      <span style={{color:'#FF8000',fontSize:'0.55rem',opacity:0.7}}> S3</span>
-                    </th>
+                    <th className={styles.thSecCell} style={{color:'#3671C6'}}>S1</th>
+                    <th className={styles.thSecCell} style={{color:'#E8002D'}}>S2</th>
+                    <th className={styles.thSecCell} style={{color:'#FF8000',borderRight:'1px solid rgba(255,255,255,0.08)'}}>S3</th>
+                    <th className={styles.thSecCell} style={{color:'#3671C6',opacity:0.55}}>S1<span style={{fontSize:'0.45rem',verticalAlign:'super'}}>pb</span></th>
+                    <th className={styles.thSecCell} style={{color:'#E8002D',opacity:0.55}}>S2<span style={{fontSize:'0.45rem',verticalAlign:'super'}}>pb</span></th>
+                    <th className={styles.thSecCell} style={{color:'#FF8000',opacity:0.55}}>S3<span style={{fontSize:'0.45rem',verticalAlign:'super'}}>pb</span></th>
                     <th className={styles.thSpeed} title="Speed Trap">ST</th>
                     <th className={styles.thLap}>LAP</th>
                   </tr>

@@ -213,3 +213,18 @@ button { font-family: var(--font-display); cursor: pointer; border: none; backgr
   .page { padding-left: 14px; padding-right: 14px; }
   .page-hd h1 { font-size: 1.3rem; }
 }
+
+/* ── Global mobile responsiveness ── */
+@media (max-width: 768px) {
+  .page { padding: var(--nav-h) 0 24px; }
+  .page-hd { padding: 16px 16px 12px; }
+  .page-hd h1 { font-size: 1.2rem; }
+  .tabs { padding: 0 12px; flex-wrap: wrap; gap: 4px; }
+  .tab-btn { font-size: 0.75rem; padding: 5px 10px; }
+  .data-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+  .page-hd h1 { font-size: 1.05rem; }
+  .page-hd p { font-size: 0.75rem; }
+}
