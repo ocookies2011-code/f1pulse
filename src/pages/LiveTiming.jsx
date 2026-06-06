@@ -276,9 +276,7 @@ export default function LiveTiming() {
         <div className={styles.toolBarInner}>
           <div className={styles.toggleGroup}>
             <button className={`${styles.toggle} ${compact ? styles.toggleOn : ''}`} onClick={() => setCompact(v=>!v)}>Compact</button>
-            <button className={`${styles.toggle} ${showMini ? styles.toggleOn : ''}`} onClick={() => setShowMini(v=>!v)}>
-              Mini Sectors {!isPremium && <Zap size={9} style={{ color:'var(--gold)', marginLeft:2 }} />}
-            </button>
+
           </div>
           <span className={styles.refreshNote}>{isPremium ? '~4s refresh (Pro)' : '~10s refresh · Upgrade for faster'}</span>
         </div>
@@ -305,12 +303,14 @@ export default function LiveTiming() {
                 <th className={styles.thPit}>PIT</th>
                 <th className={styles.thPos}>#</th>
                 <th className={styles.thDriver}>DRIVER</th>
-                <th>INTERVAL</th>
-                <th>TYRE</th>
-                <th>BEST LAP</th>
-                <th className={styles.thLeader}>LEADER</th>
-                <th>LAST LAP</th>
-                {showMini && <th className={styles.thMini}>MINI SECTORS · LAST SECTORS · BEST SECTORS</th>}
+                <th className={styles.thInterval}>INTERVAL</th>
+                <th className={styles.thTyre}>TYRE</th>
+                <th className={styles.thTime}>BEST LAP</th>
+                <th className={styles.thTime}>LEADER</th>
+                <th className={styles.thTime}>LAST LAP</th>
+                <th className={styles.thMiniSectors}>MINI SECTORS</th>
+                <th className={styles.thSectors}>LAST SECTORS</th>
+                <th className={styles.thSectors}>BEST SECTORS</th>
                 <th className={styles.thLap}>LAP</th>
               </tr>
             </thead>
@@ -372,15 +372,49 @@ export default function LiveTiming() {
                       {fmt(d.last_lap)}
                     </td>
 
-                    {/* Mini sectors */}
-                    {showMini && (
-                      <td>
-                        {isPremium
-                          ? <MiniSectors sectors={d.sectors} segments={d.segments} bestSectors={d.best_sectors} />
-                          : <Link to="/premium" className={styles.lockLink}><Zap size={10} /> Pro</Link>
-                        }
-                      </td>
-                    )}
+                    {/* Mini segments */}
+                    <td className={styles.tdMiniSegs}>
+                      {isPremium && d.segments?.some(sg => sg?.length > 0) ? (
+                        <div className={styles.segRow}>
+                          {[0,1,2].map(si => (
+                            <div key={si} className={styles.segGroup}>
+                              {(d.segments[si] ?? []).slice(0,8).map((v, j) => {
+                                const sc = v===2051?styles.segPurple:v===2049?styles.segGreen:v===2064?styles.segPit:styles.segYellow
+                                return <span key={j} className={`${styles.seg} ${sc}`} />
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      ) : <span className={styles.dash}>—</span>}
+                    </td>
+                    {/* Last sectors */}
+                    <td className={styles.tdSectors}>
+                      {d.sectors?.some(Boolean) ? (
+                        <div className={styles.sectorTimes}>
+                          {[0,1,2].map(i => {
+                            const isBest = d.sectors[i] && d.best_sectors[i] && Math.abs(d.sectors[i]-d.best_sectors[i]) < 0.001
+                            const isPB   = d.sectors[i] && (!d.best_sectors[i] || d.sectors[i] <= d.best_sectors[i])
+                            return (
+                              <span key={i} className={`mono ${styles.secTime} ${isBest?styles.secPurple:isPB?styles.secGreen:d.sectors[i]?styles.secYellow:styles.secGrey}`}>
+                                {d.sectors[i]?d.sectors[i].toFixed(3):'——'}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      ) : <span className={styles.dash}>—</span>}
+                    </td>
+                    {/* Best sectors */}
+                    <td className={styles.tdSectors}>
+                      {d.best_sectors?.some(Boolean) ? (
+                        <div className={styles.sectorTimes}>
+                          {[0,1,2].map(i => (
+                            <span key={i} className={`mono ${styles.secTime} ${d.best_sectors[i]?styles.secPurple:styles.secGrey}`}>
+                              {d.best_sectors[i]?d.best_sectors[i].toFixed(3):'——'}
+                            </span>
+                          ))}
+                        </div>
+                      ) : <span className={styles.dash}>—</span>}
+                    </td>
 
                     {/* Lap */}
                     <td className={`mono ${styles.tdLap}`}>{d.lap_number || '—'}</td>

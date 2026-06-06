@@ -190,3 +190,26 @@
 .miniMapLink:hover { opacity:0.75; }
 
 @media (max-width:1100px) { .mainAndMap { flex-direction:column; } .miniMap { width:100%; border-left:none; border-top:1px solid var(--border); } }
+
+/* ── formula-timer style dense columns ── */
+.thInterval { width: 90px; }
+.thTyre     { width: 70px; }
+.thTime     { width: 90px; font-family: var(--font-mono); }
+.thMiniSectors { width: 110px; }
+.thSectors  { width: 160px; }
+
+.tdMiniSegs { vertical-align: middle; }
+.tdSectors  { vertical-align: middle; }
+
+/* Wider segment bars */
+.segRow { display: flex; gap: 4px; }
+.segGroup { display: flex; gap: 1.5px; }
+.seg { width: 5px; height: 10px; border-radius: 1px; background: var(--bg-4); }
+.segPurple { background: var(--purple) !important; }
+.segGreen  { background: var(--green) !important; }
+.segYellow { background: var(--yellow) !important; }
+.segPit    { background: var(--text-3) !important; }
+
+/* Sharper sector times display */
+.sectorTimes { display: flex; gap: 8px; }
+.secTime { font-size: 0.73rem; letter-spacing: -0.01em; }

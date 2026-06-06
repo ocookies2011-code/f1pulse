@@ -4,6 +4,7 @@ import { Map, MapPin, Search, ArrowLeft, Clock, Calendar, Flag, Zap, ChevronRigh
 import { getMeetings, flagUrl, getSessions, getSessionResult, getDrivers, fmt } from '../lib/openf1'
 import { format, isPast, parseISO } from 'date-fns'
 import { CIRCUITS_2026, findCircuit } from '../lib/circuitData'
+import { getCircuitImage } from '../lib/circuitImages'
 import styles from './Circuits.module.css'
 
 // ── Helper: characteristic badge colour ──────────────────────────────────────
@@ -21,25 +22,20 @@ function CharBadge({ label }) {
   )
 }
 
-// ── Circuit image using the official F1 SVG track maps (via flagcdn workaround) ──
-function CircuitImage({ circuitKey, countryCode }) {
-  // Use a placeholder SVG track outline until we have live data
+// ── Circuit image using real Wikipedia track maps ──────────────────────────────
+function CircuitImage({ slug, countryCode }) {
+  const imgUrl = getCircuitImage(slug)
   const flag = flagUrl(countryCode, '64x48')
   return (
     <div className={styles.circuitImg}>
-      <div className={styles.circuitImgBg}>
-        <div className={styles.trackOutline}>
-          {/* Generic track silhouette — replaced by real data when available */}
-          <svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', opacity:0.6 }}>
-            <path
-              d="M 60 90 Q 60 40 150 40 Q 240 40 240 90 Q 240 140 150 140 Q 80 140 60 110 Z"
-              fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="8" strokeLinecap="round"
-            />
-            <circle cx="60" cy="90" r="4" fill="#e10600" />
-          </svg>
-        </div>
+      {imgUrl
+        ? <img src={imgUrl} alt={slug} className={styles.trackImg} onError={e => { e.target.style.display='none'; e.target.nextSibling?.style && (e.target.nextSibling.style.display='flex') }} />
+        : null
+      }
+      <div className={styles.trackImgFallback} style={{ display: imgUrl ? 'none' : 'flex' }}>
+        <span style={{ fontSize:'2rem', opacity:0.3 }}>🏎</span>
       </div>
-      {flag && <img src={flag} alt="" className={styles.circuitFlag} onError={e=>e.target.style.display='none'} />}
+      {flag && <img src={flag} alt={countryCode} className={styles.circuitFlag} onError={e=>e.target.style.display='none'} />}
     </div>
   )
 }
@@ -47,16 +43,14 @@ function CircuitImage({ circuitKey, countryCode }) {
 // ── Circuit card (grid view) ──────────────────────────────────────────────────
 function CircuitCard({ data, round, done, slug }) {
   const flag = flagUrl(data.countryCode)
+  const imgUrl = getCircuitImage(slug)
   return (
     <Link to={`/circuits/${encodeURIComponent(slug)}`} className={`${styles.card} ${done ? styles.done : ''}`}>
       <div className={styles.cardImgWrap}>
-        <div className={styles.cardImgBg}>
-          <svg viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', opacity:0.5 }}>
-            <path d="M 60 80 Q 60 30 150 30 Q 240 30 240 80 Q 240 130 150 130 Q 80 130 60 100 Z"
-              fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="6" strokeLinecap="round" />
-            <circle cx="60" cy="80" r="3.5" fill="#e10600" />
-          </svg>
-        </div>
+        {imgUrl
+          ? <img src={imgUrl} alt={slug} className={styles.cardTrackImg} onError={e=>e.target.style.display='none'} />
+          : <div className={styles.cardImgFallback}><span>🏎</span></div>
+        }
         {flag && <img src={flag} alt={data.country} className={styles.cardFlag} onError={e=>e.target.style.display='none'} />}
         <div className={styles.cardImgOverlay}>
           <span className={styles.cardCircuitName}>{slug}</span>
@@ -153,23 +147,14 @@ export function CircuitProfile() {
           </div>
         </div>
         <div className={styles.heroRight}>
-          {/* Track outline SVG */}
+          {/* Real track map image */}
           <div className={styles.heroTrack}>
-            <svg viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%' }}>
-              <path d="M 80 140 Q 80 50 200 50 Q 320 50 320 140 Q 320 230 200 230 Q 110 230 80 170 Z"
-                fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="16" strokeLinecap="round" />
-              <path d="M 80 140 Q 80 50 200 50 Q 320 50 320 140 Q 320 230 200 230 Q 110 230 80 170 Z"
-                fill="none" stroke="rgba(225,6,0,0.8)" strokeWidth="4" strokeLinecap="round"
-                strokeDasharray="20 8" />
-              <circle cx="80" cy="140" r="6" fill="#e10600" />
-              <text x="95" y="145" fill="rgba(255,255,255,0.5)" fontSize="11" fontFamily="monospace">S/F</text>
-              {/* DRS zones */}
-              {[...Array(data.drsZones)].map((_, i) => (
-                <line key={i}
-                  x1={160 + i*80} y1={50} x2={160+i*80+40} y2={50}
-                  stroke="#39d98a" strokeWidth="6" strokeLinecap="round" />
-              ))}
-            </svg>
+            {(() => {
+              const imgUrl = getCircuitImage(decoded)
+              return imgUrl
+                ? <img src={imgUrl} alt={decoded} className={styles.heroTrackImg} onError={e=>e.target.style.display='none'} />
+                : <div className={styles.heroTrackFallback}><span style={{fontSize:'4rem',opacity:0.2}}>🏎</span></div>
+            })()}
             <div className={styles.heroTrackLabel}>{data.grandPrix}</div>
           </div>
         </div>

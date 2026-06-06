@@ -64,3 +64,55 @@
 .sectionTitle { font-size:1.1rem; font-weight:700; margin-bottom:14px; }
 
 @media (max-width:768px) { .hero { flex-direction:column; } .heroRight { width:100%; } }
+
+/* ── Real track images ── */
+.cardTrackImg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 12px;
+  filter: brightness(0.9) contrast(1.05);
+  background: #0a0c10;
+}
+.cardImgFallback {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-2);
+}
+
+.circuitImg {
+  position: relative;
+  height: 200px;
+  background: #0a0c10;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+}
+.trackImg {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 16px;
+  filter: brightness(0.95) contrast(1.05);
+}
+.trackImgFallback {
+  width: 100%; height: 100%;
+  align-items: center; justify-content: center;
+}
+.circuitFlag {
+  position: absolute; top: 10px; right: 10px;
+  width: 32px; height: 22px;
+  object-fit: cover; border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.heroTrackImg {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 20px;
+  filter: brightness(0.95) contrast(1.05);
+}
+.heroTrackFallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-2);
+}

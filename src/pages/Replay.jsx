@@ -133,9 +133,15 @@ export default function Replay() {
         const sorted = driverStates
           .filter(d => d.cum_time > 0)
           .sort((a, b) => a.cum_time - b.cum_time)
-          .map((d, i) => ({ ...d, position: i + 1, gap: i === 0 ? 0 : d.cum_time - sorted[0]?.cum_time }))
 
-        frames.push({ lap: lapN, standings: sorted })
+        const leaderTime = sorted[0]?.cum_time ?? 0
+        const withPos = sorted.map((d, i) => ({
+          ...d,
+          position: i + 1,
+          gap: i === 0 ? 0 : d.cum_time - leaderTime,
+        }))
+
+        frames.push({ lap: lapN, standings: withPos })
       }
 
       setReplayData({ drivers: Object.values(drvMap), frames })
