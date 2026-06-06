@@ -570,15 +570,7 @@ export default function LiveTiming() {
         </div>
       </div>
 
-      {/* ── Toolbar ── */}
-      <div className={styles.toolBar}>
-        <div className={styles.toolBarInner}>
-          <div className={styles.toggleGroup}>
-            <button className={`${styles.toggle} ${compact?styles.toggleOn:''}`} onClick={()=>setCompact(v=>!v)}>Compact</button>
-          </div>
-          <span className={styles.refreshNote}>{isPremium ? '⚡ 3s · positions 2s' : '🔒 15s refresh — Pro for 3s'}</span>
-        </div>
-      </div>
+
 
       {/* ── Main area: timing table LEFT + right panel RIGHT ── */}
       <div className={styles.mainRow}>
@@ -748,8 +740,7 @@ export default function LiveTiming() {
             </div>
             </>
             )
-          })()}
-          )}
+          })}
         </div>
 
         {/* Right panel: track map / team radio / race control */}

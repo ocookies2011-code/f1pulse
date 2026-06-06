@@ -40,7 +40,7 @@
 .flagSc     { background: rgba(255,140,0,0.12);  color: #ff8c00; border: 1px solid rgba(255,140,0,0.3); }
 
 /* ── Toolbar ── */
-.toolBar { background: #0d0d10; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.toolBar { display: none; }  /* Compact toggle moved into topBar */
 .toolBarInner { padding: 0 12px; height: 30px; display: flex; align-items: center; justify-content: space-between; }
 .toggleGroup { display: flex; gap: 2px; }
 .toggle { padding: 2px 9px; border-radius: 3px; font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.3); border: 1px solid transparent; background: transparent; transition: all 0.1s; cursor: pointer; }
@@ -515,8 +515,8 @@
 /* ── Fixed header above scroll body ── */
 .tableHead {
   flex-shrink: 0;
-  overflow: hidden;        /* no scrollbar shown - JS syncs position */
-  background: #13131a;
+  overflow: hidden;
+  background: #1a1a24;
 }
 .tableHead table {
   border-collapse: collapse;
@@ -529,12 +529,12 @@
   font-weight: 900 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
-  color: rgba(255,255,255,0.9) !important;
+  color: #ffffff !important;
   text-align: left;
   white-space: nowrap !important;
   border-bottom: 2px solid rgba(255,255,255,0.18) !important;
   border-right: 1px solid rgba(255,255,255,0.07) !important;
-  background: #13131a !important;
+  background: #1c1c26 !important;
   position: static !important; /* OVERRIDE any sticky - header div is fixed, not sticky */
   box-shadow: none !important;
 }
