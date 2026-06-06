@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart2, Zap, Lock, TrendingUp, Users, Layers } from 'lucide-react'
-import { getSessions, getLaps, getDrivers, getStints, fmt } from '../lib/openf1'
+import { getSessions, getLaps, getAllLaps, getDrivers, getStints, fmt } from '../lib/openf1'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
   BarChart, Bar, Cell, ReferenceLine, ScatterChart, Scatter,
@@ -24,34 +24,33 @@ function PremiumGate({ children, title }) {
 }
 
 // ── Lap chart ─────────────────────────────────────────────────────────────────
-function LapTimesChart({ sessionKey, drivers }) {
+function LapTimesChart({ sessionKey, drivers, allLaps }) {
   const [data, setData]       = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState([])
 
   useEffect(() => {
-    if (!sessionKey || !drivers.length) return
+    if (!sessionKey || !drivers.length || !allLaps?.length) return
     setLoading(true)
     const top = drivers.slice(0, 6)
     setSelected(top.map(d => d.driver_number))
-    Promise.all(top.map(d =>
-      getLaps(sessionKey, d.driver_number)
-        .then(laps => ({ driver: d, laps }))
-        .catch(() => ({ driver: d, laps: [] }))
-    )).then(results => {
-      const maxLap = Math.max(...results.flatMap(r => r.laps.map(l => l.lap_number ?? 0)))
-      const rows = []
-      for (let lap = 1; lap <= maxLap; lap++) {
-        const row = { lap }
-        for (const { driver, laps } of results) {
-          const l = laps.find(x => x.lap_number === lap)
-          if (l?.lap_duration && l.lap_duration < 200) row[driver.name_acronym] = l.lap_duration
-        }
-        rows.push(row)
+    const results = top.map(d => ({
+      driver: d,
+      laps: allLaps.filter(l => l.driver_number === d.driver_number)
+    }))
+    const maxLap = Math.max(...results.flatMap(r => r.laps.map(l => l.lap_number ?? 0)), 0)
+    const rows = []
+    for (let lap = 1; lap <= maxLap; lap++) {
+      const row = { lap }
+      for (const { driver, laps } of results) {
+        const l = laps.find(x => x.lap_number === lap)
+        if (l?.lap_duration && l.lap_duration < 200) row[driver.name_acronym] = l.lap_duration
       }
-      setData(rows.filter(r => Object.keys(r).length > 1))
-    }).finally(() => setLoading(false))
-  }, [sessionKey, drivers])
+      rows.push(row)
+    }
+    setData(rows.filter(r => Object.keys(r).length > 1))
+    setLoading(false)
+  }, [sessionKey, drivers, allLaps])
 
   if (loading) return <div className="spinner-wrap"><div className="spinner" /></div>
   if (!data.length) return <div className={styles.empty}>No lap data available for this session.</div>
@@ -91,36 +90,32 @@ function LapTimesChart({ sessionKey, drivers }) {
 }
 
 // ── Potential lap chart (best sectors) ────────────────────────────────────────
-function PotentialLapChart({ sessionKey, drivers }) {
+function PotentialLapChart({ sessionKey, drivers, allLaps }) {
   const [data, setData]       = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!sessionKey || !drivers.length) return
+    if (!sessionKey || !drivers.length || !allLaps?.length) return
     setLoading(true)
-    Promise.all(drivers.slice(0,12).map(d =>
-      getLaps(sessionKey, d.driver_number)
-        .then(laps => ({ driver: d, laps }))
-        .catch(() => ({ driver: d, laps: [] }))
-    )).then(results => {
-      const rows = results.map(({ driver, laps }) => {
-        const validLaps = laps.filter(l => l.lap_duration && l.lap_duration < 200)
-        if (!validLaps.length) return null
-        const bestLap  = Math.min(...validLaps.map(l => l.lap_duration))
-        const bestS1   = Math.min(...validLaps.map(l => l.duration_sector_1).filter(Boolean))
-        const bestS2   = Math.min(...validLaps.map(l => l.duration_sector_2).filter(Boolean))
-        const bestS3   = Math.min(...validLaps.map(l => l.duration_sector_3).filter(Boolean))
-        const potential = (bestS1||0) + (bestS2||0) + (bestS3||0)
-        return {
-          acronym: driver.name_acronym,
-          colour: driver.team_colour,
-          bestLap, potential: potential || bestLap,
-          delta: potential ? potential - bestLap : 0,
-        }
-      }).filter(Boolean).sort((a,b) => a.bestLap - b.bestLap)
-      setData(rows)
-    }).finally(() => setLoading(false))
-  }, [sessionKey, drivers])
+    const rows = drivers.slice(0,20).map(driver => {
+      const laps = allLaps.filter(l => l.driver_number === driver.driver_number)
+      const validLaps = laps.filter(l => l.lap_duration && l.lap_duration < 200 && !l.is_pit_out_lap)
+      if (!validLaps.length) return null
+      const bestLap = Math.min(...validLaps.map(l => l.lap_duration))
+      const bestS1  = Math.min(...validLaps.map(l => l.duration_sector_1).filter(Boolean))
+      const bestS2  = Math.min(...validLaps.map(l => l.duration_sector_2).filter(Boolean))
+      const bestS3  = Math.min(...validLaps.map(l => l.duration_sector_3).filter(Boolean))
+      const potential = (bestS1||0) + (bestS2||0) + (bestS3||0)
+      return {
+        acronym: driver.name_acronym,
+        colour: driver.team_colour,
+        bestLap, potential: potential || bestLap,
+        delta: potential ? potential - bestLap : 0,
+      }
+    }).filter(Boolean).sort((a,b) => a.bestLap - b.bestLap)
+    setData(rows)
+    setLoading(false)
+  }, [sessionKey, drivers, allLaps])
 
   if (loading) return <div className="spinner-wrap"><div className="spinner" /></div>
   if (!data.length) return <div className={styles.empty}>No data available.</div>
@@ -147,7 +142,7 @@ function PotentialLapChart({ sessionKey, drivers }) {
 }
 
 // ── Stint/tyre analysis ────────────────────────────────────────────────────────
-function TyreStintChart({ sessionKey, drivers }) {
+function TyreStintChart({ sessionKey, drivers, allLaps }) {
   const [stintData, setStintData] = useState([])
   const [loading,   setLoading]   = useState(true)
 
@@ -213,20 +208,18 @@ function TyreStintChart({ sessionKey, drivers }) {
 }
 
 // ── Driver head-to-head ────────────────────────────────────────────────────────
-function DriverComparison({ sessionKey, drivers }) {
+function DriverComparison({ sessionKey, drivers, allLaps }) {
   const [dA, setDA] = useState('')
   const [dB, setDB] = useState('')
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
 
   const compare = useCallback(async () => {
-    if (!dA || !dB || !sessionKey) return
+    if (!dA || !dB || !sessionKey || !allLaps?.length) return
     setLoading(true)
     try {
-      const [lapsA, lapsB] = await Promise.all([
-        getLaps(sessionKey, dA),
-        getLaps(sessionKey, dB),
-      ])
+      const lapsA = allLaps.filter(l => l.driver_number === Number(dA))
+      const lapsB = allLaps.filter(l => l.driver_number === Number(dB))
       const maxLap = Math.max(...lapsA.map(l=>l.lap_number??0), ...lapsB.map(l=>l.lap_number??0))
       const drvA = drivers.find(d => d.driver_number === Number(dA))
       const drvB = drivers.find(d => d.driver_number === Number(dB))
@@ -324,9 +317,21 @@ export default function Analytics() {
       ]).then(([data, allSess]) => {
         const races = (data ?? []).filter(m => !m.meeting_name?.toLowerCase().includes('testing'))
           .sort((a,b) => new Date(b.date_start) - new Date(a.date_start))
+        const sess = allSess ?? []
         setMeetings(races)
-        setAllSessionsCache(allSess ?? [])
-        if (races[0]) setSelMeeting(String(races[0].meeting_key))
+        setAllSessionsCache(sess)
+        // Pick most recent meeting that has sessions data
+        const firstWithSess = races.find(r => sess.some(s => s.meeting_key === r.meeting_key))
+        const chosen = firstWithSess ?? races[0]
+        if (chosen) {
+          setSelMeeting(String(chosen.meeting_key))
+          // Set session immediately without waiting for effect
+          const mSessions = sess.filter(x => x.meeting_key === chosen.meeting_key)
+            .sort((a,b) => new Date(b.date_start) - new Date(a.date_start))
+          setSessions(mSessions)
+          const race = mSessions.find(x => x.session_name === 'Race') ?? mSessions.find(x => x.session_name === 'Qualifying') ?? mSessions[0]
+          if (race) setSelSession(String(race.session_key))
+        }
       }).finally(() => setLoading(false))
     })
   }, [])
@@ -341,9 +346,22 @@ export default function Analytics() {
     if (race) setSelSession(String(race.session_key))
   }, [selMeeting, allSessionsCache])
 
+  const [allLaps, setAllLaps] = useState([])
+  const [lapsLoading, setLapsLoading] = useState(false)
+
   useEffect(() => {
     if (!selSession) return
-    getDrivers(selSession).then(setDrivers).catch(() => {})
+    setDrivers([])
+    setAllLaps([])
+    // Fetch drivers + all laps in parallel
+    setLapsLoading(true)
+    Promise.all([
+      getDrivers(selSession).catch(() => []),
+      getAllLaps(selSession).catch(() => []),
+    ]).then(([drvs, laps]) => {
+      setDrivers(drvs ?? [])
+      setAllLaps(laps ?? [])
+    }).finally(() => setLapsLoading(false))
   }, [selSession])
 
   const TABS = [
@@ -387,35 +405,48 @@ export default function Analytics() {
 
       {/* Content */}
       <div className={styles.chartCard}>
+        {lapsLoading && <div className="spinner-wrap" style={{padding:'40px 0'}}><div className="spinner" /><p style={{color:'var(--text-3)',fontSize:'0.8rem',marginTop:12}}>Loading session data…</p></div>}
         {tab === 'laps' && (
           <PremiumGate title="Lap Time Chart">
-            {selSession
-              ? <LapTimesChart sessionKey={selSession} drivers={drivers} />
-              : <div className={styles.empty}>Select a session above</div>
+            <div style={{padding:'10px 16px 4px',background:'rgba(255,255,255,0.02)',borderBottom:'1px solid var(--border)',fontSize:'0.78rem',color:'var(--text-2)',lineHeight:1.5}}>
+              <strong style={{color:'var(--text)'}}>Lap Times Chart</strong> — Lap-by-lap pace for the top 6 drivers. Green = personal best, purple = session best. Spikes indicate pit stops or incidents. Flat lines show consistent race pace.
+            </div>
+            {selSession && !lapsLoading
+              ? <LapTimesChart sessionKey={selSession} drivers={drivers} allLaps={allLaps} />
+              : !lapsLoading ? <div className={styles.empty}>Select a session above</div> : null
             }
           </PremiumGate>
         )}
         {tab === 'potential' && (
           <PremiumGate title="Potential Lap">
-            {selSession
-              ? <PotentialLapChart sessionKey={selSession} drivers={drivers} />
-              : <div className={styles.empty}>Select a session above</div>
+            <div style={{padding:'10px 16px 4px',background:'rgba(255,255,255,0.02)',borderBottom:'1px solid var(--border)',fontSize:'0.78rem',color:'var(--text-2)',lineHeight:1.5}}>
+              <strong style={{color:'var(--text)'}}>Theoretical Best Lap</strong> — Each driver's best S1 + best S2 + best S3 combined, vs their actual best lap. The gap (δ) shows how many seconds of time were left on the table across the session.
+            </div>
+            {selSession && !lapsLoading
+              ? <PotentialLapChart sessionKey={selSession} drivers={drivers} allLaps={allLaps} />
+              : !lapsLoading ? <div className={styles.empty}>Select a session above</div> : null
             }
           </PremiumGate>
         )}
         {tab === 'stints' && (
           <PremiumGate title="Tyre Stint Analysis">
+            <div style={{padding:'10px 16px 4px',background:'rgba(255,255,255,0.02)',borderBottom:'1px solid var(--border)',fontSize:'0.78rem',color:'var(--text-2)',lineHeight:1.5}}>
+              <strong style={{color:'var(--text)'}}>Tyre Strategy</strong> — Shows each driver's stint length and compound (🔴 Soft · 🟡 Medium · ⚪ Hard · 🟢 Inter · 🔵 Wet). Longer bars = longer stint on that compound. Gaps between bars = pit stops.
+            </div>
             {selSession
-              ? <TyreStintChart sessionKey={selSession} drivers={drivers} />
+              ? <TyreStintChart sessionKey={selSession} drivers={drivers} allLaps={allLaps} />
               : <div className={styles.empty}>Select a session above</div>
             }
           </PremiumGate>
         )}
         {tab === 'compare' && (
           <PremiumGate title="Driver Comparison">
-            {selSession
-              ? <DriverComparison sessionKey={selSession} drivers={drivers} />
-              : <div className={styles.empty}>Select a session above</div>
+            <div style={{padding:'10px 16px 4px',background:'rgba(255,255,255,0.02)',borderBottom:'1px solid var(--border)',fontSize:'0.78rem',color:'var(--text-2)',lineHeight:1.5}}>
+              <strong style={{color:'var(--text)'}}>Head-to-Head</strong> — Select two drivers to compare their lap times directly. The delta line shows who was faster each lap — above zero means Driver A was slower. Useful for comparing teammates on the same strategy.
+            </div>
+            {selSession && !lapsLoading
+              ? <DriverComparison sessionKey={selSession} drivers={drivers} allLaps={allLaps} />
+              : !lapsLoading ? <div className={styles.empty}>Select a session above</div> : null
             }
           </PremiumGate>
         )}

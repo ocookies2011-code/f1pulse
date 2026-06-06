@@ -129,12 +129,30 @@ function RightPanel({ session, standings, rc, isPremium }) {
             <span className={styles.mapSessionLabel}>{session?.circuit_short_name ?? session?.meeting_name?.split(' ')[0] ?? ''}</span>
           </div>
 
-          {/* SVG Track Map */}
-          <svg viewBox={svgViewBox} xmlns="http://www.w3.org/2000/svg" className={styles.rpMapSvg} preserveAspectRatio="xMidYMid meet">
+          {/* Background circuit image from formula-timer for accurate shape */}
+          {session?.circuit_short_name && (
+            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:0}}>
+              <img
+                src={`https://formula-timer.com/circuits/${
+                  ({'Monaco':'monaco','Silverstone':'silverstone','Monza':'monza','Spa':'spa','Suzuka':'suzuka','Albert Park':'albert_park','Sakhir':'bahrain','Jeddah':'jeddah','Miami':'miami','Imola':'imola','Barcelona':'barcelona','Budapest':'budapest','Zandvoort':'zandvoort','Baku':'baku','Singapore':'singapore','Austin':'austin','Mexico City':'mexico','Spielberg':'spielberg','Yas Marina':'yas_marina','Las Vegas':'las_vegas','Lusail':'losail','São Paulo':'sao_paulo','Montréal':'villeneuve'}[session.circuit_short_name] ?? session.circuit_short_name.toLowerCase().replace(/ /g,'_'))
+                }.png`}
+                alt=""
+                style={{
+                  width:'100%', height:'100%',
+                  objectFit:'contain', objectPosition:'center',
+                  opacity: 0.55,
+                  padding: '8px',
+                }}
+                onError={e => e.target.style.display='none'}
+              />
+            </div>
+          )}
+          {/* SVG overlay for sectors, corners, DRS and car dots */}
+          <svg viewBox={svgViewBox} xmlns="http://www.w3.org/2000/svg" className={styles.rpMapSvg} preserveAspectRatio="xMidYMid meet" style={{position:'relative',zIndex:1}}>
             {circuit ? (
               <>
-                {/* Base track — thick grey */}
-                <path d={circuit.path} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Base track — thick grey (subtle since bg image shows shape) */}
+                <path d={circuit.path} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Sector-coloured overlay lines */}
                 {showSectors && sectorPaths.map(sec => (
                   <path key={sec.id} d={sec.d} fill="none" stroke={sec.color} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
