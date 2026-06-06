@@ -1,73 +1,111 @@
-// Real F1 team logos using Wikipedia SVG sources + inline SVG fallbacks
-const LOGO_URLS = {
-  'Mercedes':       'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Mercedes_AMG_Petronas_2021_logo.svg/200px-Mercedes_AMG_Petronas_2021_logo.svg.png',
-  'Ferrari':        'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Ferrari_logo_2002.svg/200px-Ferrari_logo_2002.svg.png',
-  'McLaren':        'https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/McLaren_Racing_logo.svg/200px-McLaren_Racing_logo.svg.png',
-  'Red Bull Racing':'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Red_Bull_Racing_logo.svg/200px-Red_Bull_Racing_logo.svg.png',
-  'Aston Martin':   'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Aston_Martin_F1_Logo.svg/200px-Aston_Martin_F1_Logo.svg.png',
-  'Alpine':         'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/BWT_Alpine_F1_Team_logo.svg/200px-BWT_Alpine_F1_Team_logo.svg.png',
-  'Williams':       'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Williams_Racing_logo.svg/200px-Williams_Racing_logo.svg.png',
-  'Haas F1 Team':   'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Haas_F1_Team_logo.svg/200px-Haas_F1_Team_logo.svg.png',
-  'Racing Bulls':   'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Visa_Cash_App_RB_Formula_One_Team_Logo.svg/200px-Visa_Cash_App_RB_Formula_One_Team_Logo.svg.png',
-  'Sauber':         'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Sauber_Motorsport_Logo.svg/200px-Sauber_Motorsport_Logo.svg.png',
-  'Cadillac':       null,
+// All team logos as inline SVG - no external dependencies, no CORS issues
+
+const LOGOS = {
+  'Mercedes': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="30" r="24" stroke="#27F4D2" strokeWidth="3.5" fill="none"/>
+      <line x1="60" y1="6" x2="60" y2="30" stroke="#27F4D2" strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="60" y1="30" x2="39" y2="42" stroke="#27F4D2" strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="60" y1="30" x2="81" y2="42" stroke="#27F4D2" strokeWidth="3.5" strokeLinecap="round"/>
+      <circle cx="60" cy="30" r="4" fill="#27F4D2"/>
+    </svg>
+  ),
+  'Ferrari': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="38" y="5" width="44" height="50" rx="4" fill="#E8002D"/>
+      <path d="M60 12 C52 16 46 22 48 30 C50 38 60 34 60 46 C60 34 70 38 72 30 C74 22 68 16 60 12Z" fill="#FFD700"/>
+      <rect x="45" y="47" width="30" height="5" fill="#1a1a1a" rx="1"/>
+    </svg>
+  ),
+  'McLaren': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 46 Q30 10 60 14 Q90 10 112 46 Q90 42 60 38 Q30 42 8 46Z" fill="#FF8000"/>
+      <ellipse cx="60" cy="38" rx="28" ry="10" fill="#FF8000"/>
+    </svg>
+  ),
+  'Red Bull Racing': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="36" cy="26" r="18" fill="#CC1E2B"/>
+      <circle cx="84" cy="26" r="18" fill="#3671C6"/>
+      <path d="M36 44 Q60 56 84 44" stroke="#FFD700" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <circle cx="36" cy="20" r="6" fill="#FFD700"/>
+      <circle cx="84" cy="20" r="6" fill="#FFD700"/>
+    </svg>
+  ),
+  'Aston Martin': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M60 5 L110 55 L10 55 Z" stroke="#229971" strokeWidth="3.5" fill="none" strokeLinejoin="round"/>
+      <path d="M60 18 L95 50 L25 50 Z" stroke="#229971" strokeWidth="1.8" fill="none" strokeLinejoin="round" opacity="0.5"/>
+      <circle cx="60" cy="38" r="6" fill="#229971"/>
+    </svg>
+  ),
+  'Alpine': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 52 L60 8 L112 52" stroke="#FF87BC" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M24 52 L60 20 L96 52" stroke="#0078D4" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  'Williams': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <text x="60" y="42" textAnchor="middle" fill="#64C4FF" fontSize="38" fontWeight="900" fontFamily="Arial,sans-serif">W</text>
+    </svg>
+  ),
+  'Haas F1 Team': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="14" width="36" height="32" rx="3" stroke="#B6BABD" strokeWidth="3.5" fill="none"/>
+      <rect x="70" y="14" width="36" height="32" rx="3" stroke="#B6BABD" strokeWidth="3.5" fill="none"/>
+      <line x1="50" y1="30" x2="70" y2="30" stroke="#B6BABD" strokeWidth="3.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  'Racing Bulls': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="60" cy="30" rx="38" ry="22" stroke="#6692FF" strokeWidth="3" fill="none"/>
+      <text x="60" y="36" textAnchor="middle" fill="#6692FF" fontSize="16" fontWeight="900" fontFamily="Arial,sans-serif">VCARB</text>
+    </svg>
+  ),
+  'Sauber': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="30" r="24" stroke="#52E252" strokeWidth="3.5" fill="none"/>
+      <path d="M44 30 L60 16 L76 30 L60 44 Z" fill="#52E252" opacity="0.85"/>
+    </svg>
+  ),
+  'Cadillac': (
+    <svg viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="18" width="100" height="24" rx="4" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+      <text x="60" y="35" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="900" fontFamily="Arial,sans-serif" letterSpacing="1">CADILLAC</text>
+    </svg>
+  ),
 }
 
-// Inline SVG fallbacks per team
-const FALLBACK_SVGS = {
-  'Mercedes':  '<circle cx="50" cy="30" r="22" stroke="#27F4D2" stroke-width="3" fill="none"/><path d="M50 8 L50 30 L28 42" stroke="#27F4D2" stroke-width="3" stroke-linecap="round"/><path d="M50 30 L72 42" stroke="#27F4D2" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="30" r="4" fill="#27F4D2"/>',
-  'Ferrari':   '<path d="M50 6 C42 10 36 18 38 26 C40 34 50 30 50 42 C50 30 60 34 62 26 C64 18 58 10 50 6Z" fill="#E8002D"/><rect x="36" y="44" width="28" height="5" rx="1" fill="#FFD700"/>',
-  'McLaren':   '<path d="M10 38 Q30 10 50 14 Q70 10 90 38 Q70 35 50 32 Q30 35 10 38Z" fill="#FF8000"/>',
-  'Red Bull Racing': '<circle cx="30" cy="25" r="15" fill="#3671C6"/><circle cx="70" cy="25" r="15" fill="#CC1E2B"/><path d="M30 40 Q50 52 70 40" stroke="#FFD700" stroke-width="2.5" fill="none"/>',
-  'Aston Martin': '<path d="M50 6 L18 50 L82 50 Z" stroke="#229971" stroke-width="3" fill="none"/><circle cx="50" cy="33" r="5" fill="#229971"/>',
-  'Alpine':    '<path d="M10 50 L50 10 L90 50" stroke="#FF87BC" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-  'Williams':  '<path d="M10 20 L25 45 L40 20 L55 45 L70 20 L85 38" stroke="#64C4FF" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-  'Haas F1 Team': '<rect x="15" y="15" width="30" height="28" rx="2" stroke="#B6BABD" stroke-width="3" fill="none"/><rect x="55" y="15" width="30" height="28" rx="2" stroke="#B6BABD" stroke-width="3" fill="none"/><line x1="45" y1="29" x2="55" y2="29" stroke="#B6BABD" stroke-width="3"/>',
-  'Racing Bulls': '<ellipse cx="50" cy="30" rx="30" ry="20" stroke="#6692FF" stroke-width="3" fill="none"/><text x="50" y="35" text-anchor="middle" fill="#6692FF" font-size="14" font-weight="900" font-family="sans-serif">RB</text>',
-  'Sauber':    '<circle cx="50" cy="30" r="22" stroke="#52E252" stroke-width="3" fill="none"/><path d="M38 30 L50 20 L62 30 L50 40 Z" fill="#52E252"/>',
-  'Cadillac':  '<text x="50" y="35" text-anchor="middle" fill="#fff" font-size="13" font-weight="900" font-family="sans-serif">CADILLAC</text>',
-}
-
-function getFallback(team) {
-  const key = Object.keys(FALLBACK_SVGS).find(k =>
-    team?.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(team?.toLowerCase())
-  )
-  return key ? FALLBACK_SVGS[key] : null
-}
-
-function getLogoUrl(team) {
-  if (!team) return null
-  const direct = LOGO_URLS[team]
-  if (direct !== undefined) return direct
-  const key = Object.keys(LOGO_URLS).find(k =>
-    team.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(team.toLowerCase())
-  )
-  return key ? LOGO_URLS[key] : null
-}
-
-export function TeamLogo({ team, size = 48 }) {
-  const url = getLogoUrl(team)
-  const fallback = getFallback(team)
-
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt={team}
-        style={{ width: size, height: size * 0.6, objectFit: 'contain', display: 'block' }}
-        onError={e => {
-          e.target.style.display = 'none'
-          if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'
-        }}
-      />
-    )
+function normTeam(name) {
+  if (!name) return null
+  const map = {
+    'mercedes': 'Mercedes',
+    'ferrari': 'Ferrari', 'scuderia ferrari': 'Ferrari',
+    'mclaren': 'McLaren', 'mclaren f1': 'McLaren',
+    'red bull': 'Red Bull Racing', 'oracle red bull': 'Red Bull Racing',
+    'aston martin': 'Aston Martin',
+    'alpine': 'Alpine', 'bwt alpine': 'Alpine',
+    'williams': 'Williams',
+    'haas': 'Haas F1 Team', 'moneygram haas': 'Haas F1 Team',
+    'racing bulls': 'Racing Bulls', 'visa cash app rb': 'Racing Bulls', 'rb formula': 'Racing Bulls',
+    'sauber': 'Sauber', 'kick sauber': 'Sauber', 'stake': 'Sauber',
+    'cadillac': 'Cadillac', 'andretti': 'Cadillac',
   }
+  const lower = name.toLowerCase()
+  for (const [k, v] of Object.entries(map)) {
+    if (lower.includes(k)) return v
+  }
+  return name
+}
 
-  // Fallback SVG
+export function TeamLogo({ team, size = 52 }) {
+  const key = normTeam(team)
+  const svg = LOGOS[key] ?? LOGOS[Object.keys(LOGOS).find(k => key?.includes(k) || k?.includes(key?.split(' ')[0])) ?? '']
+  if (!svg) return <div style={{width:size,height:size*0.55,background:'rgba(255,255,255,0.05)',borderRadius:4}}/>
   return (
-    <svg viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={{ width: size, height: size * 0.6 }}
-      dangerouslySetInnerHTML={{ __html: fallback ?? '' }}
-    />
+    <div style={{width:size,height:size*0.55,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      {svg}
+    </div>
   )
 }
