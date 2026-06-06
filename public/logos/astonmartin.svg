@@ -1,0 +1,13 @@
+<svg viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left wing -->
+  <path d="M15 85 Q40 20 90 50 Q110 60 130 45 Q155 28 175 50" stroke="#006F51" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M40 85 Q60 38 90 52 Q115 62 130 48 Q155 32 175 52" stroke="#006F51" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <path d="M70 85 Q85 52 100 55 Q120 58 130 50 Q155 36 175 54" stroke="#006F51" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>
+  <!-- Center oval -->
+  <ellipse cx="200" cy="60" rx="30" ry="22" fill="#006F51"/>
+  <text x="200" y="65" text-anchor="middle" fill="white" font-size="14" font-weight="900" font-family="Arial">AM</text>
+  <!-- Right wing (mirrored) -->
+  <path d="M385 85 Q360 20 310 50 Q290 60 270 45 Q245 28 225 50" stroke="#006F51" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M360 85 Q340 38 310 52 Q285 62 270 48 Q245 32 225 52" stroke="#006F51" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <path d="M330 85 Q315 52 300 55 Q280 58 270 50 Q245 36 225 54" stroke="#006F51" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>
+</svg>

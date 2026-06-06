@@ -1,0 +1,34 @@
+<svg viewBox="0 0 300 140" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left red bull body -->
+  <ellipse cx="75" cy="65" rx="55" ry="38" fill="#CC1E2B"/>
+  <!-- Left bull head -->
+  <ellipse cx="110" cy="45" rx="28" ry="22" fill="#CC1E2B" transform="rotate(15 110 45)"/>
+  <!-- Left bull horns -->
+  <path d="M95 30 Q80 10 65 15" stroke="#CC1E2B" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M118 28 Q130 8 148 18" stroke="#CC1E2B" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Left bull eye -->
+  <circle cx="118" cy="42" r="5" fill="#1a0a0a"/>
+  <!-- Left bull legs -->
+  <rect x="40" y="92" width="12" height="30" rx="5" fill="#CC1E2B"/>
+  <rect x="60" y="96" width="12" height="28" rx="5" fill="#CC1E2B"/>
+  <rect x="85" y="95" width="12" height="28" rx="5" fill="#CC1E2B"/>
+  <rect x="105" y="90" width="12" height="30" rx="5" fill="#CC1E2B"/>
+  <!-- Right blue bull body -->
+  <ellipse cx="225" cy="65" rx="55" ry="38" fill="#1E3A8A"/>
+  <!-- Right bull head (mirrored) -->
+  <ellipse cx="190" cy="45" rx="28" ry="22" fill="#1E3A8A" transform="rotate(-15 190 45)"/>
+  <!-- Right bull horns -->
+  <path d="M205 30 Q220 10 235 15" stroke="#1E3A8A" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M182 28 Q170 8 152 18" stroke="#1E3A8A" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Right bull eye -->
+  <circle cx="182" cy="42" r="5" fill="#0a0a1a"/>
+  <!-- Right bull legs -->
+  <rect x="148" y="90" width="12" height="30" rx="5" fill="#1E3A8A"/>
+  <rect x="168" y="95" width="12" height="28" rx="5" fill="#1E3A8A"/>
+  <rect x="193" y="96" width="12" height="28" rx="5" fill="#1E3A8A"/>
+  <rect x="213" y="92" width="12" height="30" rx="5" fill="#1E3A8A"/>
+  <!-- Gold arc connecting -->
+  <path d="M118 85 Q150 68 182 85" stroke="#FFD700" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <circle cx="118" cy="85" r="7" fill="#FFD700"/>
+  <circle cx="182" cy="85" r="7" fill="#FFD700"/>
+</svg>
