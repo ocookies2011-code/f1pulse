@@ -94,12 +94,12 @@ async function cached(endpoint, params, ttl) {
 // Endpoints
 export const getMeetings    = (year=2026) => cached('/meetings',            { year },              300_000)
 export const getSessions    = (p={})      => cached('/sessions',            p,                     60_000)
-export const getDrivers     = (sk='latest')=>cached('/drivers',             { session_key: sk },   300_000)
+export const getDrivers     = (sk='latest')=>cached('/drivers',             { session_key: sk },   600_000) // cache 10min
 export const getPositions   = (sk='latest')=>cached('/position',            { session_key: sk },   4_000)
 export const getLaps        = (sk,dn)     => cached('/laps',                { session_key:sk, driver_number:dn }, 8_000)
 export const getAllLaps      = (sk='latest')=>cached('/laps',                { session_key: sk },   8_000)
-export const getStints      = (sk='latest')=>cached('/stints',              { session_key: sk },   15_000)
-export const getPitStops    = (sk='latest')=>cached('/pit',                 { session_key: sk },   15_000)
+export const getStints      = (sk='latest')=>cached('/stints',              { session_key: sk },   30_000)
+export const getPitStops    = (sk='latest')=>cached('/pit',                 { session_key: sk },   30_000)
 export const getIntervals   = (sk='latest')=>cached('/intervals',           { session_key: sk },   4_000)
 export const getRaceControl = (sk='latest')=>cached('/race_control',        { session_key: sk },   8_000)
 export const getTeamRadio   = (sk='latest')=>cached('/team_radio',          { session_key: sk },   20_000)
@@ -138,20 +138,22 @@ export async function getBestRecentSession() {
 export const getBestStandingsSession = () => getBestRecentSession()
 
 export async function buildLiveStandings(session_key='latest') {
-  const [positions,laps,intervals,drivers,stints,pits] = await Promise.all([
+  const [positions,laps,drivers,stints,pits] = await Promise.all([
     getPositions(session_key).catch(()=>[]),
     getAllLaps(session_key).catch(()=>[]),
-    getIntervals(session_key).catch(()=>[]),
     getDrivers(session_key).catch(()=>[]),
     getStints(session_key).catch(()=>[]),
     getPitStops(session_key).catch(()=>[]),
   ])
+  // Intervals only valid for race sessions - fetch separately with fallback
+  let intervals = []
+  try { intervals = await getIntervals(session_key) } catch { intervals = [] }
   const posMap={},drvMap={},stintMap={},lapMap={},intMap={},pitMap={}
   for(const p of positions??[]) if(!posMap[p.driver_number]||p.date>posMap[p.driver_number].date) posMap[p.driver_number]=p
   for(const d of drivers??[]) drvMap[d.driver_number]=d
   for(const s of stints??[]) if(!stintMap[s.driver_number]||s.stint_number>stintMap[s.driver_number].stint_number) stintMap[s.driver_number]=s
   for(const l of laps??[]) { if(!lapMap[l.driver_number]) lapMap[l.driver_number]=[]; lapMap[l.driver_number].push(l) }
-  for(const i of intervals??[]) intMap[i.driver_number]=i
+  for(const i of (intervals??[])) intMap[i.driver_number]=i
   for(const p of pits??[]) pitMap[p.driver_number]=(pitMap[p.driver_number]??0)+1
 
   let globalBest=null; const bestS=[null,null,null]

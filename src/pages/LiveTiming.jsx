@@ -494,8 +494,8 @@ export default function LiveTiming() {
     const radioInitTimer = setTimeout(doRadio, 5000)
     const radioTimer = setInterval(doRadio, 20000)
     
-    // Polling: Pro = 5s (fast enough, safe on rate limits), Free = 20s
-    const ms = isPremium ? 5000 : 20000
+    // Polling: 10s for Pro (proxy rate limits at ~6 req/s), 30s free
+    const ms = isPremium ? 10000 : 30000
     intervalRef.current = setInterval(fetchLive, ms)
     
     return () => {
