@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { Activity, BarChart2, Calendar, Map, Trophy, Users, Film, Navigation, Menu, X, Zap, LogOut, User, ChevronRight, CheckSquare, Users2 } from 'lucide-react'
+import { Activity, BarChart2, Calendar, Map, Trophy, Users, Film, Navigation, Menu, X, Zap, LogOut, User, ChevronRight, CheckSquare, UsersRound } from 'lucide-react'
 import styles from './Navbar.module.css'
 
 const NAV = [
   { to: '/live',      label: 'Live Timing', icon: Activity },
   { to: '/standings', label: 'Standings',   icon: Trophy },
   { to: '/results',   label: 'Results',     icon: CheckSquare },
-  { to: '/drivers',   label: 'Drivers',     icon: Users2 },
+  { to: '/drivers',   label: 'Drivers',     icon: UsersRound },
   { to: '/analytics', label: 'Analytics',   icon: BarChart2 },
   { to: '/calendar',  label: 'Calendar',    icon: Calendar },
   { to: '/circuits',  label: 'Circuits',    icon: Map },

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { CheckeredFlag, ChevronDown, ChevronUp, Clock, Zap, Trophy, AlertCircle } from 'lucide-react'
+import { Flag, ChevronDown, ChevronUp, Clock, Zap, Trophy, AlertCircle } from 'lucide-react'
 import { getMeetings, getSessions, getDrivers, getSessionResult, getStints, flagUrl, fmt } from '../lib/openf1'
 import { format, isPast, parseISO } from 'date-fns'
 import styles from './Results.module.css'
@@ -242,7 +242,7 @@ export default function Results() {
   return (
     <div className="page">
       <div className="page-hd">
-        <h1><CheckeredFlag size={20} style={{ strokeWidth:2 }} /> Race Results</h1>
+        <h1><Flag size={20} style={{ strokeWidth:2 }} /> Race Results</h1>
         <p>2026 Formula 1 Season — Full finishing orders, points and strategy</p>
       </div>
 

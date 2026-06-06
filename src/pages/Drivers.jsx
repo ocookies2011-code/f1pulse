@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users2, Search, AlertCircle } from 'lucide-react'
+import { UsersRound, Search, AlertCircle } from 'lucide-react'
 import { getBestStandingsSession, getDrivers, getChampionshipDrivers } from '../lib/openf1'
 import styles from './Drivers.module.css'
 
@@ -141,7 +141,7 @@ export default function Drivers() {
   return (
     <div className="page">
       <div className="page-hd">
-        <h1><Users2 size={20} /> Drivers</h1>
+        <h1><UsersRound size={20} /> Drivers</h1>
         <p>
           2026 Formula 1 Season Drivers
           {sessionInfo && (

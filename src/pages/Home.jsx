@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, Zap, Trophy, Calendar, BarChart2, ArrowRight, Clock, MapPin, ChevronRight, CheckSquare, Users2 } from 'lucide-react'
+import { Activity, Zap, Trophy, Calendar, BarChart2, ArrowRight, Clock, MapPin, ChevronRight, CheckSquare, UsersRound } from 'lucide-react'
 import { getMeetings, getLatestSession, getBestStandingsSession, getSessionResult, getDrivers, getSessions, flagUrl } from '../lib/openf1'
 import { format, formatDistanceToNow, isPast, isFuture, parseISO } from 'date-fns'
 import styles from './Home.module.css'
@@ -27,7 +27,7 @@ const FEATURES = [
   { icon: Activity,     title: 'Live Timing',    desc: 'Real-time positions, lap times, sector splits and gaps. Updated every few seconds during sessions.',    to: '/live',      pro: false },
   { icon: Trophy,       title: 'Standings',      desc: 'Live driver and constructor championship standings, updated after every race weekend.',                 to: '/standings', pro: false },
   { icon: CheckSquare,  title: 'Race Results',   desc: 'Full finishing orders, points hauls, tyre strategies and fastest lap for every completed race.',        to: '/results',   pro: false },
-  { icon: Users2,       title: 'Drivers',        desc: 'All 2026 season drivers with championship stats, team colours and headshots.',                          to: '/drivers',   pro: false },
+  { icon: UsersRound,       title: 'Drivers',        desc: 'All 2026 season drivers with championship stats, team colours and headshots.',                          to: '/drivers',   pro: false },
   { icon: BarChart2,    title: 'Analytics',      desc: 'Lap charts, stint breakdowns, tyre degradation and head-to-head driver comparison tools.',             to: '/analytics', pro: true  },
   { icon: Calendar,     title: 'Race Calendar',  desc: 'Full 2026 season calendar with session times, circuit info and live countdowns.',                       to: '/calendar',  pro: false },
 ]
