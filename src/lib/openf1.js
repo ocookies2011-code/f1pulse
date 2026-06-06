@@ -15,47 +15,73 @@ function cacheSet(k, data, ttl) { _cache.set(k, { data, exp: Date.now() + ttl })
 // Rate-limited queue: max 3 concurrent, 300ms gap
 const _q = []; let _running = 0
 function _dispatch() {
-  // Cap queue at 12 to prevent unbounded growth during live sessions
-  if (_q.length > 12) {
-    // Drop oldest requests (they'll be re-fetched on next poll)
-    const dropped = _q.splice(0, _q.length - 12)
+  if (_q.length > 15) {
+    const dropped = _q.splice(0, _q.length - 15)
     dropped.forEach(r => r.resolve([]))
   }
   while (_running < 3 && _q.length) {
-    const { url, headers, resolve } = _q.shift()
+    const { url, headers, resolve, fallbackUrl } = _q.shift()
     _running++
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 8000)
+    const timer = setTimeout(() => ctrl.abort(), 10000)
     fetch(url, { headers, signal: ctrl.signal })
       .then(async res => {
         clearTimeout(timer)
         if (res.status === 429) {
-          // Rate limited - back off, don't retry if queue is large
-          if (_q.length < 6) setTimeout(() => { _q.unshift({ url, headers, resolve }); _dispatch() }, 2000)
+          if (_q.length < 8) setTimeout(() => { _q.unshift({ url, headers, resolve, fallbackUrl }); _dispatch() }, 2000)
           else resolve([])
+          return
+        }
+        // If proxy returned error (404/500) and we have a fallback, use it
+        if (!res.ok && fallbackUrl) {
+          const r2 = await fetch(fallbackUrl, { signal: AbortSignal.timeout(8000) }).catch(() => null)
+          resolve(r2?.ok ? await r2.json().catch(() => []) : [])
           return
         }
         resolve(res.ok ? await res.json().catch(() => []) : [])
       })
-      .catch(() => { clearTimeout(timer); resolve([]) })
+      .catch(async () => {
+        clearTimeout(timer)
+        // Network error on proxy - try direct fallback
+        if (fallbackUrl) {
+          const r2 = await fetch(fallbackUrl, { signal: AbortSignal.timeout(8000) }).catch(() => null)
+          resolve(r2?.ok ? await r2.json().catch(() => []) : [])
+        } else {
+          resolve([])
+        }
+      })
       .finally(() => { _running--; setTimeout(_dispatch, 350) })
   }
 }
 
 async function apiFetch(endpoint, params = {}) {
-  // Use Supabase proxy if available (handles auth server-side)
-  // Falls back to direct OpenF1 call (no auth, public data only)
-  let urlStr
+  // Build direct OpenF1 URL (always works, public data no auth needed)
+  const directUrl = new URL(`${BASE}${endpoint}`)
+  Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') directUrl.searchParams.set(k, String(v)) })
+  const directStr = directUrl.toString()
+
+  // If proxy is configured, use it (adds auth server-side for live data)
+  // Otherwise fall back to direct call
+  let urlStr = directStr
+  let useProxy = false
   if (PROXY_URL) {
-    const proxyUrl = new URL(`${PROXY_URL}/v1${endpoint}`)
-    Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') proxyUrl.searchParams.set(k, String(v)) })
-    urlStr = proxyUrl.toString()
-  } else {
-    const directUrl = new URL(`${BASE}${endpoint}`)
-    Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') directUrl.searchParams.set(k, String(v)) })
-    urlStr = directUrl.toString()
+    try {
+      const proxyUrl = new URL(`${PROXY_URL}/v1${endpoint}`)
+      Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') proxyUrl.searchParams.set(k, String(v)) })
+      urlStr = proxyUrl.toString()
+      useProxy = true
+    } catch { urlStr = directStr }
   }
-  return new Promise(resolve => { _q.push({ url: urlStr, headers: {}, resolve }); _dispatch() })
+
+  return new Promise(resolve => {
+    _q.push({
+      url: urlStr,
+      headers: {},
+      resolve,
+      fallbackUrl: useProxy ? directStr : null,
+    })
+    _dispatch()
+  })
 }
 
 async function cached(endpoint, params, ttl) {
