@@ -175,11 +175,44 @@ const GENERIC_CIRCUIT = {
   startLine: { x:200, y:300, angle: 90 },
 }
 
+// Meeting name → CIRCUITS key mapping (same logic as circuitData2)
+const MEETING_MAP_LOCAL = {
+  'monaco': 'Monaco', 'monte carlo': 'Monaco',
+  'albert park': 'Albert Park', 'australian': 'Albert Park', 'melbourne': 'Albert Park',
+  'suzuka': 'Suzuka', 'japanese': 'Suzuka',
+  'sakhir': 'Catalunya', 'bahrain': 'Catalunya', // use Catalunya SVG as fallback
+  'jeddah': 'Monaco', // closest shape fallback
+  'miami': 'Albert Park',
+  'imola': 'Monza',
+  'villeneuve': 'Albert Park', 'montreal': 'Albert Park', 'canadian': 'Albert Park',
+  'spielberg': 'Silverstone',
+  'silverstone': 'Silverstone', 'british': 'Silverstone',
+  'budapest': 'Monza',
+  'spa': 'Silverstone', 'belgian': 'Silverstone',
+  'zandvoort': 'Monza',
+  'monza': 'Monza', 'italian': 'Monza',
+  'baku': 'Monaco',
+  'singapore': 'Monaco',
+  'austin': 'Silverstone',
+  'mexico': 'Albert Park',
+  'são paulo': 'Monza', 'sao paulo': 'Monza', 'brazil': 'Monza',
+  'las vegas': 'Albert Park',
+  'lusail': 'Catalunya', 'losail': 'Catalunya', 'qatar': 'Catalunya',
+  'yas marina': 'Catalunya', 'abu dhabi': 'Catalunya',
+  'barcelona': 'Catalunya', 'spain': 'Catalunya', 'catalan': 'Catalunya',
+  'shanghai': 'Albert Park', 'chinese': 'Albert Park',
+}
+
 function getCircuit(sessionName) {
-  if (!sessionName) return null
-  const keys = Object.keys(CIRCUITS)
-  for (const k of keys) {
-    if (sessionName.toLowerCase().includes(k.toLowerCase())) return CIRCUITS[k]
+  if (!sessionName) return GENERIC_CIRCUIT
+  const lower = sessionName.toLowerCase()
+  // Direct CIRCUITS key match
+  for (const k of Object.keys(CIRCUITS)) {
+    if (lower.includes(k.toLowerCase())) return CIRCUITS[k]
+  }
+  // Meeting map fallback
+  for (const [key, circuitKey] of Object.entries(MEETING_MAP_LOCAL)) {
+    if (lower.includes(key)) return CIRCUITS[circuitKey] ?? GENERIC_CIRCUIT
   }
   return GENERIC_CIRCUIT
 }
@@ -295,7 +328,7 @@ export default function TrackMap() {
           </h1>
           <p>
             {session
-              ? `${session.session_name} · ${session.meeting_name}`
+              ? `${session.session_name} · ${session.meeting_name ?? session.circuit_short_name ?? ''}`
               : 'No active session — showing circuit layout'
             }
           </p>

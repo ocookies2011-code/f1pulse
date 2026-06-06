@@ -153,20 +153,17 @@ export async function getWeather(sk = 'latest') {
 
 // ── Live standings (sequential to avoid 429) ─────────────────────────────────
 export async function buildLiveStandings(session_key = 'latest') {
-  // Fetch sequentially in priority order, with short delays
   const delay = (ms) => new Promise(r => setTimeout(r, ms))
 
-  const positions = await getPositions(session_key).catch(() => [])
-  await delay(150)
-  const drivers   = await getDrivers(session_key).catch(() => [])
-  await delay(150)
-  const stints    = await getStints(session_key).catch(() => [])
-  await delay(150)
-  const laps      = await getAllLaps(session_key).catch(() => [])
-  await delay(150)
-  const intervals = await getIntervals(session_key).catch(() => [])
-  // pits are lowest priority
-  const pits      = await getPitStops(session_key).catch(() => [])
+  // Fetch all data in parallel with individual error handling
+  const [positions, drivers, stints, laps, intervals, pits] = await Promise.all([
+    getPositions(session_key).catch(() => []),
+    getDrivers(session_key).catch(() => []),
+    getStints(session_key).catch(() => []),
+    getAllLaps(session_key).catch(() => []),
+    getIntervals(session_key).catch(() => []),
+    getPitStops(session_key).catch(() => []),
+  ])
 
   const posMap = {}
   for (const p of positions)
@@ -202,7 +199,30 @@ export async function buildLiveStandings(session_key = 'latest') {
     }
   }
 
-  return Object.values(posMap).sort((a, b) => a.position - b.position).map(p => {
+  // Fallback: if positions is empty (e.g. between sessions), build from drivers + laps
+  let baseDrivers = Object.values(posMap)
+  if (baseDrivers.length === 0 && drivers.length > 0) {
+    // Build virtual positions from best lap times
+    const driverNums = [...new Set(laps.map(l => l.driver_number))]
+    if (driverNums.length === 0) {
+      // No lap data either - just list all drivers
+      for (const d of drivers) {
+        posMap[d.driver_number] = { driver_number: d.driver_number, position: 0 }
+      }
+    } else {
+      // Sort by best lap
+      const bestLapByDriver = {}
+      for (const l of laps) {
+        if (l.lap_duration && (!bestLapByDriver[l.driver_number] || l.lap_duration < bestLapByDriver[l.driver_number]))
+          bestLapByDriver[l.driver_number] = l.lap_duration
+      }
+      const sorted = driverNums.sort((a, b) => (bestLapByDriver[a] ?? 999) - (bestLapByDriver[b] ?? 999))
+      sorted.forEach((dn, i) => { posMap[dn] = { driver_number: dn, position: i + 1 } })
+    }
+    baseDrivers = Object.values(posMap)
+  }
+
+  return baseDrivers.sort((a, b) => (a.position || 99) - (b.position || 99)).map(p => {
     const drv    = drvMap[p.driver_number] ?? {}
     const stint  = stintMap[p.driver_number]
     const dl     = lapMap[p.driver_number] ?? []

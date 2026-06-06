@@ -34,6 +34,7 @@ const FEATURES = [
 
 export default function Home() {
   const [nextRace,    setNextRace]    = useState(null)
+  const [nextSessionInMeeting, setNextSessionInMeeting] = useState(null)
   const [session,     setSession]     = useState(null)
   const [lastRace,    setLastRace]    = useState(null)   // { meeting, top3: [{name, team, colour}] }
   const [loading,     setLoading]     = useState(true)
@@ -42,10 +43,23 @@ export default function Home() {
     async function load() {
       try {
         const [meetings, sess] = await Promise.all([getMeetings(2026), getLatestSession()])
+        // Use date_end so Monaco shows as current even after FP1/FP2 started
         const upcoming = meetings
-          .filter(m => !m.meeting_name?.toLowerCase().includes('testing') && isFuture(parseISO(m.date_start)))
+          .filter(m => !m.meeting_name?.toLowerCase().includes('testing') && isFuture(parseISO(m.date_end ?? m.date_start)))
           .sort((a, b) => new Date(a.date_start) - new Date(b.date_start))
-        setNextRace(upcoming[0] ?? null)
+        const nextMeeting = upcoming[0] ?? null
+        setNextRace(nextMeeting)
+
+        // Find next specific session within the next meeting
+        if (nextMeeting) {
+          const allSess = await getSessions({ year: 2026 }).catch(() => [])
+          const now = new Date()
+          const nextSess = allSess
+            .filter(s => s.meeting_key === nextMeeting.meeting_key && new Date(s.date_start) > now)
+            .sort((a, b) => new Date(a.date_start) - new Date(b.date_start))[0]
+          if (nextSess) setNextSessionInMeeting(nextSess)
+        }
+
         setSession(sess)
 
         // Last completed race
@@ -115,21 +129,24 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Next race card */}
+        {/* Next race / next session card */}
         {nextRace && (
           <div className={styles.nextCard}>
             <div className={styles.nextCardLabel}>
-              <Clock size={11} /> Next Race
+              <Clock size={11} /> {nextSessionInMeeting ? 'Next Session' : 'Next Race'}
             </div>
             {nextRace.country_flag && (
               <img src={nextRace.country_flag} alt={nextRace.country_name} className={styles.nextFlag} onError={e => e.target.style.display='none'} />
             )}
             <div className={styles.nextName}>{nextRace.meeting_name}</div>
+            {nextSessionInMeeting && (
+              <div className={styles.nextSession}>{nextSessionInMeeting.session_name}</div>
+            )}
             <div className={styles.nextMeta}>
               <span><MapPin size={11} /> {nextRace.circuit_short_name}</span>
-              <span>{format(parseISO(nextRace.date_start), 'd MMM yyyy')}</span>
+              <span>{format(parseISO(nextSessionInMeeting?.date_start ?? nextRace.date_start), 'd MMM yyyy')}</span>
             </div>
-            <Countdown target={nextRace.date_start} />
+            <Countdown target={nextSessionInMeeting?.date_start ?? nextRace.date_start} />
             <Link to="/calendar" className={styles.nextLink}>
               Full calendar <ChevronRight size={13} />
             </Link>
