@@ -299,63 +299,9 @@ function RightPanel({ session, standings, rc, radio, isPremium }) {
 
   return (
     <div className={styles.rightPanel}>
-      {/* ── Tab bar ── */}
-      <div className={styles.rpTabs}>
-        <button className={`${styles.rpTab} ${tab==='map'?styles.rpTabActive:''}`} onClick={()=>setTab('map')}>
-          Track Map
-        </button>
-        <button className={`${styles.rpTab} ${tab==='radio'?styles.rpTabActive:''}`} onClick={()=>setTab('radio')}>
-          <Radio size={9} /> Radio {!isPremium && <Zap size={8} style={{color:'var(--gold)',marginLeft:2}}/>}
-        </button>
-        <button className={`${styles.rpTab} ${tab==='rc'?styles.rpTabActive:''}`} onClick={()=>setTab('rc')}>
-          Race Control
-        </button>
-      </div>
+      {/* Right panel is now ONLY the track map - Radio/RC moved to bottom panels */}
+      <TrackMapPanel session={session} positions={positions} drvMap={drvMap} isPremium={isPremium} styles={styles} />
 
-      {/* ── Track Map tab ── */}
-      {tab === 'map' && <TrackMapPanel session={session} positions={positions} drvMap={drvMap} isPremium={isPremium} styles={styles} />}
-
-      {/* ── Team Radio tab ── */}
-      {tab === 'radio' && (
-        <div className={styles.rpRadio}>
-          {radio.length === 0 ? (
-            <div className={styles.rpEmpty}>
-              {isPremium 
-                ? <>No team radio available<br/><span style={{fontSize:'0.7rem',opacity:0.5}}>Coverage is very limited in 2026</span></>
-                : <><Zap size={14} style={{color:'var(--gold)',marginBottom:6}}/><br/>Team radio requires Pro<br/><Link to="/premium" style={{color:'var(--gold)',fontSize:'0.72rem'}}>Upgrade →</Link></>
-              }
-            </div>
-          ) : radio.map((r, i) => {
-            const drv = standings.find(d => d.driver_number === r.driver_number)
-            const col = `#${drv?.team_colour ?? '555555'}`
-            return (
-              <div key={i} className={styles.radioMsg}>
-                <span className={styles.radioDriver} style={{color:col}}>{drv?.name_acronym ?? `#${r.driver_number}`}</span>
-                {r.recording_url
-                  ? <audio src={r.recording_url} controls className={styles.radioAudio} />
-                  : <span className={styles.radioNoAudio}>No audio available</span>
-                }
-                <span className={styles.radioTime}>{r.date ? new Date(r.date).toLocaleTimeString('en-GB',{hour12:false}) : ''}</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ── Race Control tab ── */}
-      {tab === 'rc' && (
-        <div className={styles.rpRc}>
-          {rc.length === 0
-            ? <div className={styles.rpEmpty}>No race control messages</div>
-            : [...rc].reverse().slice(0,40).map((m, i) => (
-                <div key={i} className={`${styles.rcLine} ${m.flag==='RED'?styles.rcRed:m.flag?.includes('YELLOW')?styles.rcYellow:m.flag==='GREEN'||m.flag==='CHEQUERED'?styles.rcGreen:m.category==='SafetyCar'?styles.rcOrange:''}`}>
-                  <span className={styles.rcTime}>{m.date ? new Date(m.date).toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit'}) : ''}</span>
-                  <span className={styles.rcMsg}>{m.message}</span>
-                </div>
-              ))
-          }
-        </div>
-      )}
     </div>
   )
 }
@@ -640,25 +586,25 @@ export default function LiveTiming() {
             <>
             {/* Div-based header row - no sticky/overflow issues */}
             <div className={styles.hdrRow} id="lt-header">
-              <div style={{width:28,flexShrink:0}}>PIT</div>
-              <div style={{width:34,flexShrink:0,textAlign:'center'}}>#</div>
-              <div style={{width:120,flexShrink:0}}>DRIVER</div>
-              <div style={{width:72,flexShrink:0}}>INTERVAL</div>
-              <div style={{width:52,flexShrink:0}}>TYRE</div>
-              <div style={{width:72,flexShrink:0}}>BEST LAP</div>
-              <div style={{width:68,flexShrink:0}}>LEADER</div>
-              <div style={{width:72,flexShrink:0}}>LAST LAP</div>
-              {isPremium && <div style={{width:90,flexShrink:0}} className={styles.hideMobile}>MINI SECTORS</div>}
-              <div style={{width:58,flexShrink:0,textAlign:'right',color:'#3671C6',marginLeft:'auto'}} className={styles.hideMobile}>S1</div>
-              <div style={{width:58,flexShrink:0,textAlign:'right',color:'#E8002D'}} className={styles.hideMobile}>S2</div>
-              <div style={{width:58,flexShrink:0,textAlign:'right',color:'#FF8000'}} className={styles.hideMobile}>S3</div>
+              <span className={styles.hc} style={{width:28}}>PIT</span>
+              <span className={styles.hc} style={{width:34,textAlign:'center'}}>#</span>
+              <span className={styles.hc} style={{width:120}}>DRIVER</span>
+              <span className={styles.hc} style={{width:72}}>INTERVAL</span>
+              <span className={styles.hc} style={{width:52}}>TYRE</span>
+              <span className={styles.hc} style={{width:72}}>BEST LAP</span>
+              <span className={styles.hc} style={{width:68}}>LEADER</span>
+              <span className={styles.hc} style={{width:72}}>LAST LAP</span>
+              {isPremium && <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:90}}>MINI SECTORS</span>}
+              <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:58,textAlign:'right',color:'#3671C6'}}>S1</span>
+              <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:58,textAlign:'right',color:'#E8002D'}}>S2</span>
+              <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:58,textAlign:'right',color:'#FF8000'}}>S3</span>
               {isPremium && <>
-                <div style={{width:58,flexShrink:0,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></div>
-                <div style={{width:58,flexShrink:0,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></div>
-                <div style={{width:58,flexShrink:0,textAlign:'right',color:'#FF8000',opacity:0.5}} className={styles.hideTablet}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></div>
-                <div style={{width:38,flexShrink:0,textAlign:'right',opacity:0.5}} className={styles.hideTablet}>ST</div>
+                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></span>
+                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></span>
+                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:58,textAlign:'right',color:'#FF8000',opacity:0.5}}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></span>
+                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:38,textAlign:'right',opacity:0.5}}>ST</span>
               </>}
-              <div style={{width:34,flexShrink:0,textAlign:'right'}}>LAP</div>
+              <span className={styles.hc} style={{width:34,textAlign:'right'}}>LAP</span>
             </div>
             {/* Scrollable body */}
             <div className={styles.tableScroll} onScroll={e => { const h = document.getElementById('lt-header'); if (h) h.scrollLeft = e.currentTarget.scrollLeft }}>

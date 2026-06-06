@@ -32,19 +32,30 @@ function cacheSet(k, data, ttl) { _cache.set(k, { data, exp: Date.now() + ttl })
 // Rate-limited queue: max 3 concurrent, 300ms gap
 const _q = []; let _running = 0
 function _dispatch() {
+  // Cap queue at 12 to prevent unbounded growth during live sessions
+  if (_q.length > 12) {
+    // Drop oldest requests (they'll be re-fetched on next poll)
+    const dropped = _q.splice(0, _q.length - 12)
+    dropped.forEach(r => r.resolve([]))
+  }
   while (_running < 3 && _q.length) {
     const { url, headers, resolve } = _q.shift()
     _running++
-    fetch(url, { headers, signal: AbortSignal.timeout(10000) })
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 8000)
+    fetch(url, { headers, signal: ctrl.signal })
       .then(async res => {
+        clearTimeout(timer)
         if (res.status === 429) {
-          setTimeout(() => { _q.unshift({ url, headers, resolve }); _dispatch() }, 3000)
+          // Rate limited - back off, don't retry if queue is large
+          if (_q.length < 6) setTimeout(() => { _q.unshift({ url, headers, resolve }); _dispatch() }, 2000)
+          else resolve([])
           return
         }
         resolve(res.ok ? await res.json().catch(() => []) : [])
       })
-      .catch(() => resolve([]))
-      .finally(() => { _running--; setTimeout(_dispatch, 300) })
+      .catch(() => { clearTimeout(timer); resolve([]) })
+      .finally(() => { _running--; setTimeout(_dispatch, 350) })
   }
 }
 
