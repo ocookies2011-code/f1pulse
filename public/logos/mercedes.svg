@@ -1,9 +1,0 @@
-<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="100" cy="100" r="92" stroke="#00D2BE" stroke-width="10" fill="none"/>
-  <circle cx="100" cy="100" r="78" stroke="#00D2BE" stroke-width="2" fill="none" opacity="0.3"/>
-  <!-- Three-pointed star -->
-  <line x1="100" y1="8" x2="100" y2="100" stroke="#00D2BE" stroke-width="10" stroke-linecap="round"/>
-  <line x1="100" y1="100" x2="20" y2="146" stroke="#00D2BE" stroke-width="10" stroke-linecap="round"/>
-  <line x1="100" y1="100" x2="180" y2="146" stroke="#00D2BE" stroke-width="10" stroke-linecap="round"/>
-  <circle cx="100" cy="100" r="12" fill="#00D2BE"/>
-</svg>

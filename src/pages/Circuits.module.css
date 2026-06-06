@@ -72,8 +72,8 @@
   object-fit: contain;
   object-position: center;
   padding: 12px;
-  filter: none;
-  background: #060810;
+  filter: brightness(1.05);
+  background: #111318;
 }
 .cardImgFallback {
   position: absolute; inset: 0;
@@ -109,8 +109,8 @@
   width: 100%; height: 100%;
   object-fit: contain;
   padding: 20px;
-  filter: none;
-  background: #060810;
+  filter: brightness(1.05);
+  background: #111318;
 }
 .heroTrackFallback {
   width: 100%; height: 100%;
