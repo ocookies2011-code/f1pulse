@@ -305,8 +305,8 @@ function RightPanel({ session, standings, rc, isPremium }) {
                 />
               )}
 
-              {/* Car position dots overlaid with CSS % */}
-              {Object.entries(normPos).map(([dn, pos]) => {
+              {/* Car position dots — Pro only */}
+              {isPremium && Object.entries(normPos).map(([dn, pos]) => {
                 const drv = drvMap[Number(dn)]
                 if (!drv) return null
                 const col = `#${drv.team_colour ?? 'aaaaaa'}`
@@ -573,7 +573,7 @@ export default function LiveTiming() {
     // OpenF1 rate limit: 30 req/10s. buildLiveStandings uses 6 endpoints.
     // Premium authenticated: poll every 3s (6 req / 3s = within limit)
     // Free unauthenticated: poll every 8s
-    const ms = isPremium ? 3000 : 8000
+    const ms = isPremium ? 3000 : 15000
     intervalRef.current = setInterval(fetchLive, ms)
     return () => clearInterval(intervalRef.current)
   }, [isPremium, fetchLive, fetchChamp])
@@ -654,7 +654,7 @@ export default function LiveTiming() {
               {weather.rainfall > 0 && ' 🌧 WET'}
             </span>
           )}
-          <span className={styles.refreshNote}>{isPremium ? '⚡ ~3s · ±0.001s' : '~8s refresh'}</span>
+          <span className={styles.refreshNote}>{isPremium ? '⚡ 3s · positions 2s' : '🔒 15s refresh — Pro for 3s'}</span>
         </div>
       </div>
 
@@ -682,14 +682,16 @@ export default function LiveTiming() {
                     <th style={{width:72}}>BEST LAP</th>
                     <th style={{width:68}}>LEADER</th>
                     <th style={{width:72}}>LAST LAP</th>
-                    <th style={{width:90}} className={styles.hideMobile}>MINI SECTORS</th>
+                    {isPremium && <th style={{width:90}} className={styles.hideMobile}>MINI SECTORS</th>}
                     <th style={{width:58,textAlign:'right',color:'#3671C6'}} className={styles.hideMobile}>S1</th>
                     <th style={{width:58,textAlign:'right',color:'#E8002D'}} className={styles.hideMobile}>S2</th>
                     <th style={{width:58,textAlign:'right',color:'#FF8000',borderRight:'1px solid rgba(255,255,255,0.08)'}} className={styles.hideMobile}>S3</th>
-                    <th style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                    <th style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                    <th style={{width:58,textAlign:'right',color:'#FF8000',opacity:0.5}} className={styles.hideTablet}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                    <th style={{width:38,textAlign:'right'}} className={styles.hideTablet}>ST</th>
+                    {isPremium && <>
+                      <th style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th style={{width:58,textAlign:'right',color:'#FF8000',opacity:0.5}} className={styles.hideTablet}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th style={{width:38,textAlign:'right'}} className={styles.hideTablet}>ST</th>
+                    </>}
                     <th style={{width:34,textAlign:'right'}}>LAP</th>
                   </tr>
                 </thead>
@@ -711,7 +713,7 @@ export default function LiveTiming() {
                           </span>
                         </td>
 
-                        <td className={styles.tdDriver} onClick={() => setSelDriver(d)} style={{cursor:'pointer'}} title="Click for live telemetry">
+                        <td className={styles.tdDriver} onClick={() => isPremium && setSelDriver(d)} style={{cursor: isPremium ? 'pointer' : 'default'}} title={isPremium ? 'Click for live telemetry' : 'Pro feature'}>
                           <span className={styles.teamBar} style={{background:`#${d.team_colour}`}} />
                           <div>
                             <div className={styles.acronym}>{d.name_acronym}</div>
@@ -740,12 +742,11 @@ export default function LiveTiming() {
                         <td className={`mono ${d.is_personal_best?styles.green:styles.dimTime}`}>{fmt(d.last_lap)}</td>
 
                         {/* Mini sector segments */}
-                        <td className={`${styles.tdMini} ${styles.hideMobile}`}>
-                          {isPremium
-                            ? <Segs segments={d.segments} styles={styles} />
-                            : <span className={styles.dash}>—</span>
-                          }
-                        </td>
+                        {isPremium && (
+                          <td className={`${styles.tdMini} ${styles.hideMobile}`}>
+                            <Segs segments={d.segments} styles={styles} />
+                          </td>
+                        )}
 
                         {/* Last sectors — S1, S2, S3 as individual cells */}
                         {[0,1,2].map(si => {
@@ -765,9 +766,8 @@ export default function LiveTiming() {
                           )
                         })}
 
-                        {/* Best sectors — S1, S2, S3 as individual cells */}
-                        {[0,1,2].map(si => {
-                          const SCOL = ['#3671C6','#E8002D','#FF8000'][si]
+                        {/* Best sectors — Pro only */}
+                        {isPremium && [0,1,2].map(si => {
                           const val = d.best_sectors?.[si]
                           return (
                             <td key={`bs${si}`} className={`mono ${styles.tdSecCell} ${styles.tdSecBest} ${styles.hideTablet}`}>
@@ -779,11 +779,13 @@ export default function LiveTiming() {
                           )
                         })}
 
-                        <td className={`mono ${styles.tdSpeed} ${styles.hideTablet}`} title="Speed trap km/h">
-                          {d.all_laps?.at(-1)?.st_speed
-                            ? <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.72rem'}}>{d.all_laps.at(-1).st_speed}</span>
-                            : <span className={styles.dash}>—</span>}
-                        </td>
+                        {isPremium && (
+                          <td className={`mono ${styles.tdSpeed} ${styles.hideTablet}`} title="Speed trap km/h">
+                            {d.all_laps?.at(-1)?.st_speed
+                              ? <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.72rem'}}>{d.all_laps.at(-1).st_speed}</span>
+                              : <span className={styles.dash}>—</span>}
+                          </td>
+                        )}
                         <td className={`mono ${styles.tdLap}`}>{d.lap_number||'—'}</td>
                       </tr>
                     )
@@ -856,12 +858,15 @@ export default function LiveTiming() {
         <TelemetryModal driver={selDriver} session={session} onClose={() => setSelDriver(null)} />
       )}
 
-      {/* ── Pro upsell ── */}
+      {/* ── Pro upsell bar ── */}
       {!isPremium && !loading && (
         <div className={styles.upsell}>
           <Zap size={13} style={{color:'var(--gold)',flexShrink:0}} />
-          <div><strong>F1Pulse Pro</strong> — mini-sectors, ~4s refresh, team radio, full track map</div>
-          <Link to="/premium" className="btn btn-gold btn-sm" style={{marginLeft:'auto'}}>£3.99/mo</Link>
+          <div>
+            <strong>F1Pulse Pro</strong> — 
+            <span style={{color:'var(--text-3)',fontWeight:400}}> live car dots, telemetry, best sectors, speed trap, 3s refresh, team radio</span>
+          </div>
+          <Link to="/premium" className="btn btn-gold btn-sm" style={{marginLeft:'auto',flexShrink:0}}>Upgrade £3.99/mo</Link>
         </div>
       )}
     </div>
