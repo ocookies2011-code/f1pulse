@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart2, Zap, Lock, TrendingUp, Users, Layers, ChevronDown, AlertCircle } from 'lucide-react'
-import { getSessions, getMeetings, getAllLaps, getDrivers, getStints, fmt } from '../lib/openf1'
+import { BarChart2, Zap, Lock, TrendingUp, Users, Layers, ChevronDown, AlertCircle, ArrowUpDown } from 'lucide-react'
+import { getSessions, getMeetings, getAllLaps, getDrivers, getStints, getOvertakes, fmt } from '../lib/openf1'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell } from 'recharts'
 import { useAuth } from '../hooks/useAuth'
 import { isPast, parseISO, format } from 'date-fns'
@@ -196,6 +196,92 @@ function DriverComparison({ allLaps, drivers }) {
   )
 }
 
+// ── Overtakes Chart ─────────────────────────────────────────────────────────
+function OvertakesChart({ sessionKey, drivers }) {
+  const [overtakes, setOvertakes] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!sessionKey) return
+    setLoading(true)
+    getOvertakes(sessionKey).then(d => setOvertakes(d ?? [])).catch(() => {}).finally(() => setLoading(false))
+  }, [sessionKey])
+
+  if (loading) return <div className="spinner-wrap"><div className="spinner"/></div>
+
+  const drvMap = {}
+  for (const d of drivers) drvMap[d.driver_number] = d
+
+  if (!overtakes.length) return (
+    <div className={styles.empty}>
+      No overtake data for this session.<br/>
+      <span style={{fontSize:'0.72rem', color:'var(--text-3)'}}>Overtakes are tracked during race sessions only.</span>
+    </div>
+  )
+
+  // Count overtakes per driver
+  const counts = {}
+  for (const ov of overtakes) {
+    counts[ov.driver_number_overtaking] = (counts[ov.driver_number_overtaking] ?? 0) + 1
+  }
+
+  const sorted = Object.entries(counts)
+    .map(([dn, count]) => ({ dn: Number(dn), count, drv: drvMap[Number(dn)] }))
+    .sort((a, b) => b.count - a.count)
+
+  return (
+    <div style={{padding:'16px 20px'}}>
+      <div style={{marginBottom:16, fontSize:'0.78rem', color:'var(--text-2)'}}>
+        <strong style={{color:'var(--text)'}}>{overtakes.length} total overtakes</strong> recorded in this session
+      </div>
+      <div style={{display:'flex', flexDirection:'column', gap:6}}>
+        {sorted.map(({ dn, count, drv }) => {
+          const col = `#${drv?.team_colour ?? '888888'}`
+          return (
+            <div key={dn} style={{display:'flex', alignItems:'center', gap:10}}>
+              <span style={{width:36, fontSize:'0.75rem', fontWeight:800, color:col, fontFamily:'monospace', textAlign:'right', flexShrink:0}}>
+                {drv?.name_acronym ?? `#${dn}`}
+              </span>
+              <div style={{flex:1, height:24, position:'relative', background:'rgba(255,255,255,0.04)', borderRadius:4}}>
+                <div style={{
+                  position:'absolute', left:0, top:0, bottom:0,
+                  width:`${(count / sorted[0].count) * 100}%`,
+                  background:col, borderRadius:4, opacity:0.8,
+                  display:'flex', alignItems:'center', paddingLeft:8,
+                  fontSize:'0.72rem', fontWeight:700, color:'#fff',
+                  minWidth:20,
+                }}>{count}</div>
+              </div>
+              <span style={{fontSize:'0.68rem', color:'var(--text-3)', width:60, flexShrink:0}}>
+                {drv?.team_name?.split(' ')[0]}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Recent overtakes list */}
+      <div style={{marginTop:20, fontSize:'0.72rem', color:'var(--text-2)'}}>
+        <div style={{fontWeight:700, marginBottom:8, color:'var(--text)'}}>Recent overtakes</div>
+        <div style={{display:'flex', flexDirection:'column', gap:4}}>
+          {overtakes.slice(-10).reverse().map((ov, i) => {
+            const overtaking = drvMap[ov.driver_number_overtaking]
+            const overtaken  = drvMap[ov.driver_number_overtaken]
+            return (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                <span style={{color:`#${overtaking?.team_colour ?? '888'}`, fontWeight:800, width:32}}>{overtaking?.name_acronym ?? `#${ov.driver_number_overtaking}`}</span>
+                <span style={{color:'var(--text-3)', fontSize:'0.65rem'}}>overtook</span>
+                <span style={{color:`#${overtaken?.team_colour ?? '888'}`, fontWeight:800, width:32}}>{overtaken?.name_acronym ?? `#${ov.driver_number_overtaken}`}</span>
+                {ov.lap_number && <span style={{color:'var(--text-3)', marginLeft:'auto', fontSize:'0.65rem'}}>Lap {ov.lap_number}</span>}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Analytics() {
   const { isPremium } = useAuth()
   const [year,        setYear]        = useState(2026)
@@ -307,7 +393,7 @@ export default function Analytics() {
         <div className={styles.chartDesc}><strong>{TABS.find(t=>t.id===tab)?.label}</strong> — {TABS.find(t=>t.id===tab)?.desc}</div>
         {dataLoading && <div className={styles.loadingState}><div className="spinner"/><p>Loading {selSession?.session_name} data…</p></div>}
         {!dataLoading && dataError && <div className={styles.errorState}><AlertCircle size={16}/> {dataError}</div>}
-        {!dataLoading && !dataError && allLaps.length > 0 && (
+        {!dataLoading && !dataError && allLaps.length > 0 && tab !== 'overtakes' && (
           <PremiumGate>
             {tab==='laps'     && <LapTimesChart allLaps={allLaps} drivers={drivers}/>}
             {tab==='potential'&& <PotentialLapChart allLaps={allLaps} drivers={drivers}/>}
@@ -316,6 +402,13 @@ export default function Analytics() {
           </PremiumGate>
         )}
         {!dataLoading && !dataError && !allLaps.length && !metaLoading && <div className={styles.emptyState}>Select a session above to load analytics data</div>}
+
+        {/* Overtakes tab - doesn't need allLaps */}
+        {!dataLoading && tab === 'overtakes' && selSession && (
+          <PremiumGate>
+            <OvertakesChart sessionKey={selSession?.session_key} drivers={drivers} />
+          </PremiumGate>
+        )}
       </div>
     </div>
   )

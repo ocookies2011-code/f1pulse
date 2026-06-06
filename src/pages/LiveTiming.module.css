@@ -362,3 +362,7 @@
   color: var(--text-3); padding: 0 4px;
   white-space: nowrap;
 }
+
+/* Speed trap column */
+.thSpeed { width: 38px; text-align: right !important; padding-right: 6px !important; font-size: 0.55rem !important; }
+.tdSpeed { text-align: right; padding-right: 6px !important; }

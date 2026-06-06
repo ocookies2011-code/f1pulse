@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio } from 'lucide-react'
+import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio, Wind, Gauge, TrendingUp, X } from 'lucide-react'
 import {
   buildLiveStandings, buildHistoricalStandings, getLatestSession, getWeather, getRaceControl,
   getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
-  getDrivers, getTeamRadio, fmt, fmtGap
+  getDrivers, getTeamRadio, getOvertakes, getCarData, fmt, fmtGap, fmtS
 } from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
 import styles from './LiveTiming.module.css'
@@ -12,6 +12,119 @@ import styles from './LiveTiming.module.css'
 const TYRE_COLOURS = { SOFT:'#e10600', MEDIUM:'#f5a623', HARD:'#d8d8d8', INTERMEDIATE:'#39a847', WET:'#0067ff' }
 const TYRE_LABELS  = { SOFT:'S', MEDIUM:'M', HARD:'H', INTERMEDIATE:'I', WET:'W' }
 
+
+
+// ── Car Telemetry Modal ──────────────────────────────────────────────────────
+function TelemetryModal({ driver, session, onClose }) {
+  const [data, setData] = useState(null)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!session?.session_key || !driver?.driver_number) return
+    const fetch_ = async () => {
+      try {
+        const d = await getCarData(session.session_key, driver.driver_number)
+        if (d?.length) setData(d[d.length - 1])
+      } catch {}
+    }
+    fetch_()
+    ref.current = setInterval(fetch_, 2000)
+    return () => clearInterval(ref.current)
+  }, [session?.session_key, driver?.driver_number])
+
+  if (!driver) return null
+  const col = `#${driver.team_colour ?? 'aaaaaa'}`
+  const drs = data?.drs
+  const drsOn = drs === 10 || drs === 12 || drs === 14
+  const drsElig = drs === 8
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000,
+      display:'flex', alignItems:'center', justifyContent:'center',
+    }} onClick={onClose}>
+      <div style={{
+        background:'var(--bg-1)', border:'1px solid var(--border)', borderRadius:12,
+        padding:20, minWidth:280, maxWidth:340,
+        borderTop:`3px solid ${col}`,
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+          <div style={{display:'flex', alignItems:'center', gap:10}}>
+            <span style={{
+              width:32, height:32, borderRadius:'50%', background:col,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:'0.72rem', fontWeight:900, color:'#fff', fontFamily:'monospace',
+            }}>{driver.driver_number}</span>
+            <div>
+              <div style={{fontWeight:800, fontSize:'0.95rem'}}>{driver.name_acronym}</div>
+              <div style={{fontSize:'0.68rem', color:'var(--text-3)'}}>{driver.team_name}</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{color:'var(--text-3)', padding:4}}><X size={16}/></button>
+        </div>
+
+        {!data ? (
+          <div style={{textAlign:'center', padding:'20px 0', color:'var(--text-3)', fontSize:'0.8rem'}}>
+            {session ? 'Fetching telemetry…' : 'No live session'}
+          </div>
+        ) : (
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+            {/* Speed */}
+            <div style={{background:'var(--bg-2)', borderRadius:8, padding:'10px 12px'}}>
+              <div style={{fontSize:'0.58rem', color:'var(--text-3)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:2}}>Speed</div>
+              <div style={{fontSize:'1.5rem', fontWeight:900, fontFamily:'monospace', color:'#fff'}}>{data.speed ?? '—'}</div>
+              <div style={{fontSize:'0.62rem', color:'var(--text-3)'}}>km/h</div>
+            </div>
+            {/* RPM */}
+            <div style={{background:'var(--bg-2)', borderRadius:8, padding:'10px 12px'}}>
+              <div style={{fontSize:'0.58rem', color:'var(--text-3)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:2}}>RPM</div>
+              <div style={{fontSize:'1.5rem', fontWeight:900, fontFamily:'monospace', color:'#fff'}}>{data.rpm ? (data.rpm/1000).toFixed(1) : '—'}</div>
+              <div style={{fontSize:'0.62rem', color:'var(--text-3)'}}>×1000</div>
+            </div>
+            {/* Gear */}
+            <div style={{background:'var(--bg-2)', borderRadius:8, padding:'10px 12px'}}>
+              <div style={{fontSize:'0.58rem', color:'var(--text-3)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:2}}>Gear</div>
+              <div style={{fontSize:'1.5rem', fontWeight:900, fontFamily:'monospace', color: data?.n_gear === 0 ? 'var(--text-3)' : col}}>
+                {data.n_gear === 0 ? 'N' : data.n_gear ?? '—'}
+              </div>
+            </div>
+            {/* DRS */}
+            <div style={{background: drsOn ? 'rgba(57,217,138,0.12)' : 'var(--bg-2)', borderRadius:8, padding:'10px 12px', border: drsOn ? '1px solid rgba(57,217,138,0.4)' : '1px solid transparent'}}>
+              <div style={{fontSize:'0.58rem', color:'var(--text-3)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:2}}>DRS</div>
+              <div style={{fontSize:'1rem', fontWeight:900, color: drsOn ? '#39d98a' : drsElig ? '#f5a623' : 'var(--text-3)'}}>
+                {drsOn ? '✓ OPEN' : drsElig ? '~ ELIGIBLE' : '✗ CLOSED'}
+              </div>
+            </div>
+            {/* Throttle bar */}
+            <div style={{background:'var(--bg-2)', borderRadius:8, padding:'10px 12px', gridColumn:'span 2'}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                <span style={{fontSize:'0.58rem', color:'var(--text-3)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Throttle</span>
+                <span style={{fontSize:'0.72rem', fontFamily:'monospace', color:'#39d98a', fontWeight:700}}>{data.throttle ?? 0}%</span>
+              </div>
+              <div style={{height:6, borderRadius:3, background:'rgba(255,255,255,0.08)'}}>
+                <div style={{height:'100%', borderRadius:3, background:'#39d98a', width:`${data.throttle ?? 0}%`, transition:'width 0.3s'}} />
+              </div>
+            </div>
+            {/* Brake */}
+            <div style={{background: data.brake ? 'rgba(225,6,0,0.1)' : 'var(--bg-2)', borderRadius:8, padding:'10px 12px', gridColumn:'span 2', border: data.brake ? '1px solid rgba(225,6,0,0.3)' : '1px solid transparent'}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                <span style={{fontSize:'0.58rem', color:'var(--text-3)', letterSpacing:'0.08em', textTransform:'uppercase'}}>Brake</span>
+                <span style={{fontSize:'0.72rem', fontFamily:'monospace', color: data.brake ? 'var(--red)' : 'var(--text-3)', fontWeight:700}}>{data.brake ? 'BRAKING' : 'OFF'}</span>
+              </div>
+              <div style={{height:6, borderRadius:3, background:'rgba(255,255,255,0.08)'}}>
+                <div style={{height:'100%', borderRadius:3, background:'var(--red)', width: data.brake ? '100%' : '0%', transition:'width 0.2s'}} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{marginTop:10, fontSize:'0.62rem', color:'rgba(255,255,255,0.15)', textAlign:'center'}}>
+          Live telemetry · 3.7Hz · click outside to close
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const CIRCUIT_SLUGS = {
   'Monaco':'monaco','Silverstone':'silverstone','Monza':'monza','Spa':'spa',
@@ -294,6 +407,8 @@ export default function LiveTiming() {
   const [drvChamp,    setDrvChamp]    = useState([])
   const [teamChamp,   setTeamChamp]   = useState([])
   const [champLoaded, setChampLoaded] = useState(false)
+  const [selDriver,   setSelDriver]   = useState(null)  // for telemetry modal
+  const [overtakes,   setOvertakes]   = useState([])
   const intervalRef = useRef(null)
 
   const fetchLive = useCallback(async () => {
@@ -321,6 +436,10 @@ export default function LiveTiming() {
       }
 
       setWeather(wthr); setRc(rcData || []); setStandings(standing)
+      // Fetch overtakes for races
+      if (sk && (session?.session_type === 'Race' || sess?.session_type === 'Race')) {
+        getOvertakes(sk).then(ov => setOvertakes(ov ?? [])).catch(() => {})
+      }
       setLastUpdate(new Date()); setError(null)
     } catch { setError('Could not load live data.') }
     finally { setLoading(false) }
@@ -377,13 +496,24 @@ export default function LiveTiming() {
                 )}
                 {weather && (
                   <span className={styles.weatherInline}>
-                    <Thermometer size={11} /> {weather.track_temperature}°
+                    <Thermometer size={11} style={{color:'#ff8800',opacity:0.8}} />
+                    <span>{weather.track_temperature?.toFixed(1) ?? '—'}°</span>
                     <span className={styles.wLabel}>TRC</span>
-                    <Thermometer size={11} /> {weather.air_temperature}°
+                    <Thermometer size={11} style={{color:'#4488ff',opacity:0.8}} />
+                    <span>{weather.air_temperature?.toFixed(1) ?? '—'}°</span>
                     <span className={styles.wLabel}>AIR</span>
-                    {weather.humidity}%
+                    <span>{weather.humidity ?? '—'}%</span>
                     <span className={styles.wLabel}>HUM</span>
-                    {weather.wind_speed > 0 && <><span>{weather.wind_speed}</span><span className={styles.wLabel}>M/S</span></>}
+                    {weather.wind_speed != null && <>
+                      <Wind size={10} style={{opacity:0.6}} />
+                      <span>{weather.wind_speed}</span>
+                      <span className={styles.wLabel}>M/S</span>
+                    </>}
+                    {weather.pressure != null && <>
+                      <Gauge size={10} style={{opacity:0.6}} />
+                      <span>{weather.pressure?.toFixed(0)}</span>
+                      <span className={styles.wLabel}>hPa</span>
+                    </>}
                     {weather.rainfall > 0 && <span className={styles.wetBadge}><CloudRain size={10} /> WET</span>}
                   </span>
                 )}
@@ -393,6 +523,11 @@ export default function LiveTiming() {
           <div className={styles.topRight}>
             {latestFlag && <RCBadge msg={latestFlag} />}
             {!isPremium && <Link to="/premium" className={styles.proBadge}><Zap size={10} /> Pro</Link>}
+            {overtakes.length > 0 && (
+              <span style={{fontSize:'0.62rem',color:'var(--text-3)',display:'flex',alignItems:'center',gap:3}}>
+                <TrendingUp size={10}/> {overtakes.length} OT
+              </span>
+            )}
             <span className={styles.updateInfo}>
               <RefreshCw size={10} className={loading ? styles.spinning : ''} />
               {lastUpdate?.toLocaleTimeString('en-GB',{hour12:false})}
@@ -451,6 +586,7 @@ export default function LiveTiming() {
                       <span style={{color:'#E8002D',fontSize:'0.55rem',opacity:0.7}}> S2</span>
                       <span style={{color:'#FF8000',fontSize:'0.55rem',opacity:0.7}}> S3</span>
                     </th>
+                    <th className={styles.thSpeed} title="Speed Trap">ST</th>
                     <th className={styles.thLap}>LAP</th>
                   </tr>
                 </thead>
@@ -472,7 +608,7 @@ export default function LiveTiming() {
                           </span>
                         </td>
 
-                        <td className={styles.tdDriver}>
+                        <td className={styles.tdDriver} onClick={() => setSelDriver(d)} style={{cursor:'pointer'}} title="Click for live telemetry">
                           <span className={styles.teamBar} style={{background:`#${d.team_colour}`}} />
                           <div>
                             <div className={styles.acronym}>{d.name_acronym}</div>
@@ -540,6 +676,11 @@ export default function LiveTiming() {
                           )
                         })}
 
+                        <td className={`mono ${styles.tdSpeed}`} title="Speed trap km/h">
+                          {d.all_laps?.at(-1)?.st_speed
+                            ? <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.72rem'}}>{d.all_laps.at(-1).st_speed}</span>
+                            : <span className={styles.dash}>—</span>}
+                        </td>
                         <td className={`mono ${styles.tdLap}`}>{d.lap_number||'—'}</td>
                       </tr>
                     )
@@ -606,6 +747,11 @@ export default function LiveTiming() {
           })()}
         </div>
       </div>
+
+      {/* ── Telemetry modal ── */}
+      {selDriver && (
+        <TelemetryModal driver={selDriver} session={session} onClose={() => setSelDriver(null)} />
+      )}
 
       {/* ── Pro upsell ── */}
       {!isPremium && !loading && (

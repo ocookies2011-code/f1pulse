@@ -144,6 +144,19 @@ export async function getBestStandingsSession(year = 2026) {
   } catch { return null }
 }
 
+// ── Live car telemetry for a single driver (last N seconds) ──────────────────
+export async function getLiveCarData(session_key, driver_number, windowSecs = 5) {
+  try {
+    const since = new Date(Date.now() - windowSecs * 1000).toISOString()
+    const url = `${BASE}/car_data?session_key=${session_key}&driver_number=${driver_number}&date%3E=${encodeURIComponent(since)}`
+    const cacheKey = `live_car_${session_key}_${driver_number}`
+    const hit = cache.get(cacheKey)
+    if (hit && Date.now() < hit.exp) return hit.data
+    const res = await getCached('/car_data', { session_key, driver_number }, 2_000)
+    return res
+  } catch { return [] }
+}
+
 export async function getWeather(sk = 'latest') {
   try {
     const d = await getCached('/weather', { session_key: sk }, 15_000)
