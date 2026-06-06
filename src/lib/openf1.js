@@ -97,6 +97,7 @@ export const getIntervals  = (sk = 'latest') => getCached('/intervals', { sessio
 export const getRaceControl= (sk = 'latest') => getCached('/race_control', { session_key: sk }, 10_000)
 export const getTeamRadio  = (sk = 'latest') => getCached('/team_radio', { session_key: sk }, 15_000)
 export const getCarData    = (sk, dn) => getCached('/car_data', { session_key: sk, driver_number: dn }, 5_000)
+export const getOvertakes  = (sk = 'latest') => getCached('/overtakes',  { session_key: sk }, 15_000)
 export const getLocation   = (sk, dn) => getCached('/location', { session_key: sk, driver_number: dn }, 5_000)
 export const getStartingGrid      = (sk) => getCached('/starting_grid', { session_key: sk }, 300_000)
 export const getSessionResult     = (sk) => getCached('/session_result', { session_key: sk }, 60_000)
