@@ -48,6 +48,8 @@ function dispatch() {
         setTimeout(dispatch, 100)
         return
       }
+      // 401/403 = auth required for live data - return empty array gracefully
+      if (res.status === 401 || res.status === 403) { resolve([]); running--; setTimeout(dispatch, MIN_GAP_MS); return }
       if (!res.ok) throw new Error(`OpenF1 ${res.status}: ${res.statusText}`)
       const data = await res.json()
       resolve(data)
@@ -94,7 +96,11 @@ export const getAllLaps     = (sk = 'latest') => getCached('/laps', { session_ke
 export const getStints     = (sk = 'latest') => getCached('/stints', { session_key: sk }, 15_000)
 export const getPitStops   = (sk = 'latest') => getCached('/pit', { session_key: sk }, 15_000)
 export const getIntervals  = (sk = 'latest') => getCached('/intervals', { session_key: sk }, 8_000)
-export const getRaceControl= (sk = 'latest') => getCached('/race_control', { session_key: sk }, 10_000)
+export async function getRaceControl(sk = 'latest') {
+  try {
+    return await getCached('/race_control', { session_key: sk }, 10_000)
+  } catch { return [] }
+}
 export const getTeamRadio  = (sk = 'latest') => getCached('/team_radio', { session_key: sk }, 15_000)
 export const getCarData    = (sk, dn) => getCached('/car_data', { session_key: sk, driver_number: dn }, 5_000)
 export const getLocation   = (sk, dn) => getCached('/location', { session_key: sk, driver_number: dn }, 5_000)
@@ -153,9 +159,7 @@ export async function getWeather(sk = 'latest') {
 
 // ── Live standings (sequential to avoid 429) ─────────────────────────────────
 export async function buildLiveStandings(session_key = 'latest') {
-  const delay = (ms) => new Promise(r => setTimeout(r, ms))
-
-  // Fetch all data in parallel with individual error handling
+  // Fetch all data in parallel
   const [positions, drivers, stints, laps, intervals, pits] = await Promise.all([
     getPositions(session_key).catch(() => []),
     getDrivers(session_key).catch(() => []),
@@ -164,6 +168,9 @@ export async function buildLiveStandings(session_key = 'latest') {
     getIntervals(session_key).catch(() => []),
     getPitStops(session_key).catch(() => []),
   ])
+  
+  // If everything is empty (e.g. no auth for live), return empty
+  if (!drivers.length && !positions.length && !laps.length) return []
 
   const posMap = {}
   for (const p of positions)

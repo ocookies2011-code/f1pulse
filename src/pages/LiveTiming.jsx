@@ -303,31 +303,51 @@ export default function LiveTiming() {
 
   const fetchLive = useCallback(async () => {
     try {
-      // Get latest session - if no live data (standings empty), fall back to last completed session
+      // Step 1: Get the current/latest session info
       const sess = await getLatestSession()
-      const sk = sess?.session_key ?? 'latest'
-      const wthr = await getWeather(sk).catch(() => null)
-      const rcData = await getRaceControl(sk).catch(() => [])
-      let standing = await buildLiveStandings(sk)
+      const sk = sess?.session_key
 
-      // If no standings from 'latest', try the best completed session (last race/quali)
+      // Step 2: Try to get live standings
+      let standing = []
+      let activeSess = sess
+      
+      if (sk) {
+        const [wthr, rcData, liveStandings] = await Promise.all([
+          getWeather(sk).catch(() => null),
+          getRaceControl(sk).catch(() => []),
+          buildLiveStandings(sk).catch(() => []),
+        ])
+        setWeather(wthr)
+        setRc(rcData || [])
+        standing = liveStandings
+      }
+
+      // Step 3: If no live data, fall back to best completed session
       if (!standing?.length) {
         const bestSess = await getBestStandingsSession(2026).catch(() => null)
         if (bestSess) {
-          // Try historical result first (cleaner for completed sessions)
+          activeSess = bestSess
+          // Use historical result endpoint for completed sessions
           const hist = await buildHistoricalStandings(bestSess.session_key).catch(() => null)
-          standing = hist?.length ? hist : await buildLiveStandings(bestSess.session_key).catch(() => [])
-          setSession(bestSess)
-        } else {
-          setSession(sess)
+          if (hist?.length) {
+            standing = hist
+          } else {
+            standing = await buildLiveStandings(bestSess.session_key).catch(() => [])
+          }
+          // Get RC for that session too
+          const rc2 = await getRaceControl(bestSess.session_key).catch(() => [])
+          if (rc2?.length) setRc(rc2)
         }
-      } else {
-        setSession(sess)
       }
 
-      setWeather(wthr); setRc(rcData || []); setStandings(standing)
-      setLastUpdate(new Date()); setError(null)
-    } catch { setError('Could not load live data.') }
+      setSession(activeSess)
+      setStandings(standing)
+      setLastUpdate(new Date())
+      setError(null)
+    } catch (e) {
+      console.error('LiveTiming fetch error:', e)
+      setError('Could not load timing data.')
+    }
     finally { setLoading(false) }
   }, [])
 
