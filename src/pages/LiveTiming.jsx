@@ -516,9 +516,31 @@ export default function LiveTiming() {
         setSession(sess)
       }
 
+      // If standings have #NNN names, patch them with a broader driver fetch
+      const hasNumberNames = standing.some(d => d.name_acronym?.startsWith('#'))
+      if (hasNumberNames && standing.length > 0) {
+        // Try fetching drivers for latest session as fallback
+        try {
+          const { getDrivers: _getDrivers } = await import('../lib/openf1')
+          const latestDrvs = await _getDrivers('latest').catch(() => [])
+          const fallbackDrvs = latestDrvs?.length ? latestDrvs : await _getDrivers(sk).catch(() => [])
+          if (fallbackDrvs?.length) {
+            const dMap = {}; for (const d of fallbackDrvs) dMap[d.driver_number] = d
+            standing = standing.map(d => ({
+              ...d,
+              name_acronym: dMap[d.driver_number]?.name_acronym ?? d.name_acronym,
+              full_name:    dMap[d.driver_number]?.full_name ?? d.full_name,
+              team_name:    dMap[d.driver_number]?.team_name ?? d.team_name,
+              team_colour:  dMap[d.driver_number]?.team_colour ?? d.team_colour,
+              headshot_url: dMap[d.driver_number]?.headshot_url ?? d.headshot_url,
+            }))
+          }
+        } catch {}
+      }
+
       setWeather(wthr); setRc(rcData || []); setStandings(standing)
       // Fetch overtakes for races
-      if (sk && (session?.session_type === 'Race' || sess?.session_type === 'Race')) {
+      if (sk && (sess?.session_name === 'Race' || sess?.session_type === 'Race')) {
         getOvertakes(sk).then(ov => setOvertakes(ov ?? [])).catch(() => {})
       }
       setLastUpdate(new Date()); setError(null)
@@ -651,24 +673,24 @@ export default function LiveTiming() {
             <div className={styles.tableScroll}>
               <table className={`${styles.table} ${compact?styles.compact:''}`}>
                 <thead>
-                  <tr>
-                    <th className={styles.thPit}>PIT</th>
-                    <th className={styles.thPos}>#</th>
-                    <th className={styles.thDriver}>DRIVER</th>
-                    <th className={styles.thNum}>INTERVAL</th>
-                    <th className={styles.thTyre}>TYRE</th>
-                    <th className={styles.thNum}>BEST LAP</th>
-                    <th className={styles.thNum}>LEADER</th>
-                    <th className={styles.thNum}>LAST LAP</th>
-                    <th className={styles.thMini}>MINI SECTORS</th>
-                    <th className={styles.thSecCell} style={{color:'#3671C6'}}>S1</th>
-                    <th className={styles.thSecCell} style={{color:'#E8002D'}}>S2</th>
-                    <th className={styles.thSecCell} style={{color:'#FF8000',borderRight:'1px solid rgba(255,255,255,0.08)'}}>S3</th>
-                    <th className={styles.thSecCell} style={{color:'#3671C6',opacity:0.55}}>S1<span style={{fontSize:'0.45rem',verticalAlign:'super'}}>pb</span></th>
-                    <th className={styles.thSecCell} style={{color:'#E8002D',opacity:0.55}}>S2<span style={{fontSize:'0.45rem',verticalAlign:'super'}}>pb</span></th>
-                    <th className={styles.thSecCell} style={{color:'#FF8000',opacity:0.55}}>S3<span style={{fontSize:'0.45rem',verticalAlign:'super'}}>pb</span></th>
-                    <th className={styles.thSpeed} title="Speed Trap">ST</th>
-                    <th className={styles.thLap}>LAP</th>
+                  <tr className={styles.theadRow}>
+                    <th style={{width:28}}>PIT</th>
+                    <th style={{width:34,textAlign:'center'}}>#</th>
+                    <th style={{width:120}}>DRIVER</th>
+                    <th style={{width:72}}>INTERVAL</th>
+                    <th style={{width:52}}>TYRE</th>
+                    <th style={{width:72}}>BEST LAP</th>
+                    <th style={{width:68}}>LEADER</th>
+                    <th style={{width:72}}>LAST LAP</th>
+                    <th style={{width:90}} className={styles.hideMobile}>MINI SECTORS</th>
+                    <th style={{width:58,textAlign:'right',color:'#3671C6'}} className={styles.hideMobile}>S1</th>
+                    <th style={{width:58,textAlign:'right',color:'#E8002D'}} className={styles.hideMobile}>S2</th>
+                    <th style={{width:58,textAlign:'right',color:'#FF8000',borderRight:'1px solid rgba(255,255,255,0.08)'}} className={styles.hideMobile}>S3</th>
+                    <th style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                    <th style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                    <th style={{width:58,textAlign:'right',color:'#FF8000',opacity:0.5}} className={styles.hideTablet}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                    <th style={{width:38,textAlign:'right'}} className={styles.hideTablet}>ST</th>
+                    <th style={{width:34,textAlign:'right'}}>LAP</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -718,7 +740,7 @@ export default function LiveTiming() {
                         <td className={`mono ${d.is_personal_best?styles.green:styles.dimTime}`}>{fmt(d.last_lap)}</td>
 
                         {/* Mini sector segments */}
-                        <td className={styles.tdMini}>
+                        <td className={`${styles.tdMini} ${styles.hideMobile}`}>
                           {isPremium
                             ? <Segs segments={d.segments} styles={styles} />
                             : <span className={styles.dash}>—</span>
@@ -732,7 +754,7 @@ export default function LiveTiming() {
                           const isSB = val && d.best_sectors?.[si] && Math.abs(val - d.best_sectors[si]) < 0.001
                           const isSessionBest = val && val === Math.min(...standings.map(x=>x.sectors?.[si]).filter(Boolean))
                           return (
-                            <td key={`ls${si}`} className={`mono ${styles.tdSecCell}`}>
+                            <td key={`ls${si}`} className={`mono ${styles.tdSecCell} ${styles.hideMobile}`}>
                               {val
                                 ? <span style={{color: isSB ? '#b45cf4' : isSessionBest ? '#39d98a' : SCOL, fontWeight: isSB||isSessionBest ? 800 : 400, opacity: isSB||isSessionBest ? 1 : 0.8}}>
                                     {val.toFixed(3)}
@@ -748,7 +770,7 @@ export default function LiveTiming() {
                           const SCOL = ['#3671C6','#E8002D','#FF8000'][si]
                           const val = d.best_sectors?.[si]
                           return (
-                            <td key={`bs${si}`} className={`mono ${styles.tdSecCell} ${styles.tdSecBest}`}>
+                            <td key={`bs${si}`} className={`mono ${styles.tdSecCell} ${styles.tdSecBest} ${styles.hideTablet}`}>
                               {val
                                 ? <span style={{color: '#b45cf4', opacity: 0.75}}>{val.toFixed(3)}</span>
                                 : <span className={styles.dash}>—</span>
@@ -757,7 +779,7 @@ export default function LiveTiming() {
                           )
                         })}
 
-                        <td className={`mono ${styles.tdSpeed}`} title="Speed trap km/h">
+                        <td className={`mono ${styles.tdSpeed} ${styles.hideTablet}`} title="Speed trap km/h">
                           {d.all_laps?.at(-1)?.st_speed
                             ? <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.72rem'}}>{d.all_laps.at(-1).st_speed}</span>
                             : <span className={styles.dash}>—</span>}
