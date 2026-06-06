@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio, Wind, Gauge, TrendingUp, X } from 'lucide-react'
 import {
   buildLiveStandings, buildHistoricalStandings, getLatestSession, getWeather, getRaceControl,
-  getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
+  getBestStandingsSession, getSessions, getChampionshipDrivers, getChampionshipTeams,
   getDrivers, getTeamRadio, getOvertakes, getCarData, fmt, fmtGap
 } from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
@@ -583,7 +583,11 @@ export default function LiveTiming() {
           ) : error ? (
             <div className={styles.emptyState}><AlertTriangle size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>{error}</p></div>
           ) : standings.length === 0 ? (
-            <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
+            <div className={styles.emptyState}>
+              <Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} />
+              <p>Fetching timing data…</p>
+              {session && <p style={{fontSize:'0.75rem',color:'var(--text-3)',marginTop:4}}>{session.session_name} · {session.circuit_short_name}</p>}
+            </div>
           ) : (() => {
             const COLS = (
               <colgroup>
