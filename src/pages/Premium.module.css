@@ -1,77 +1,69 @@
-.wrap {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 48px;
-  align-items: start;
-  max-width: 1100px;
-  margin: 0 auto;
+/* ── Hero ── */
+.hero { padding: 40px 24px 24px; text-align: center; max-width: 680px; margin: 0 auto; }
+.heroBadge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.3); border-radius: 20px; font-size: 0.72rem; font-weight: 700; color: var(--gold); margin-bottom: 16px; }
+.heroTitle { font-size: 2rem; font-weight: 900; margin-bottom: 10px; line-height: 1.2; }
+.heroSub { color: var(--text-2); font-size: 0.92rem; line-height: 1.6; }
+
+@media (max-width: 600px) {
+  .heroTitle { font-size: 1.5rem; }
 }
 
-.badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--gold-dim); border: 1px solid var(--gold);
-  border-radius: 100px; padding: 5px 14px;
-  font-size: 0.8rem; font-weight: 700; color: var(--gold);
-  text-transform: uppercase; letter-spacing: 0.06em;
-  margin-bottom: 20px;
+/* ── Comparison cards ── */
+.compWrap { display: flex; gap: 16px; padding: 0 24px 32px; max-width: 860px; margin: 0 auto; flex-wrap: wrap; }
+.compCard {
+  flex: 1; min-width: 280px;
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px;
+  display: flex; flex-direction: column; position: relative;
 }
-.title { font-size: 2.2rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 12px; line-height: 1.1; }
-.sub { color: var(--text-2); font-size: 1rem; margin-bottom: 32px; }
-
-.features { display: flex; flex-direction: column; gap: 20px; }
-.feature { display: flex; align-items: flex-start; gap: 14px; }
-.featureIcon {
-  width: 38px; height: 38px; flex-shrink: 0;
-  background: var(--bg-2); border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--red);
-}
-.featureTitle { font-weight: 700; margin-bottom: 2px; }
-.featureDesc { font-size: 0.85rem; color: var(--text-2); line-height: 1.4; }
-
-/* Pricing card */
-.pricingCard {
-  background: linear-gradient(135deg, var(--bg-1) 0%, rgba(245,166,35,0.07) 100%);
-  border: 1px solid rgba(245,166,35,0.3);
-  border-radius: 20px;
-  padding: 36px 32px;
-  position: sticky;
-  top: calc(var(--nav-h) + 24px);
+.proCard { border-color: rgba(245,166,35,0.4); background: linear-gradient(135deg, var(--bg-1) 0%, rgba(245,166,35,0.04) 100%); }
+.proRibbon {
+  position: absolute; top: -1px; right: 20px;
+  background: var(--gold); color: #000;
+  font-size: 0.62rem; font-weight: 900; letter-spacing: 0.06em;
+  padding: 3px 10px; border-radius: 0 0 6px 6px;
+  display: flex; align-items: center; gap: 4px;
 }
 
-.planName { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 16px; }
-.price { display: flex; align-items: baseline; gap: 2px; margin-bottom: 6px; }
-.currency { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
-.amount { font-size: 3.5rem; font-weight: 900; color: var(--gold); line-height: 1; letter-spacing: -0.04em; }
-.per { font-size: 1rem; color: var(--text-2); margin-left: 4px; }
-.priceNote { font-size: 0.8rem; color: var(--text-3); margin-bottom: 24px; }
+.compHeader { margin-bottom: 16px; }
+.compPlan { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); margin-bottom: 4px; }
+.compPrice { font-size: 2rem; font-weight: 900; }
+.compPrice span { font-size: 0.9rem; color: var(--text-3); font-weight: 400; }
 
-.checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.checklist li { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-2); }
-.checkIcon { color: var(--green); flex-shrink: 0; }
+.compList { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.compItem { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: var(--text-2); line-height: 1.4; }
 
-.cta { width: 100%; justify-content: center; font-size: 1rem; padding: 14px; }
-.cta:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.secure { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.78rem; color: var(--text-3); margin-top: 12px; }
-
-.error { background: rgba(225,6,0,0.1); border: 1px solid var(--red); border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; color: var(--red); margin-bottom: 14px; }
-
-.freeNote {
-  margin-top: 16px;
-  font-size: 0.82rem;
-  color: var(--text-3);
-  text-align: center;
-  padding: 12px;
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+.freeBtn {
+  display: block; text-align: center;
+  padding: 10px; border-radius: var(--radius);
+  border: 1px solid var(--border); color: var(--text-2);
+  font-size: 0.84rem; font-weight: 600;
+  transition: all 0.1s;
 }
+.freeBtn:hover { border-color: var(--border-bright); color: var(--text); }
 
-.alreadyPro { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 24px; text-align: center; }
-.proIcon { width: 72px; height: 72px; background: var(--gold-dim); border: 1px solid var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gold); }
-
-@media (max-width: 900px) {
-  .wrap { grid-template-columns: 1fr; }
-  .pricingCard { position: static; }
+.proBtn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 12px;
+  background: var(--gold); color: #000;
+  border-radius: var(--radius); font-weight: 800; font-size: 0.88rem;
+  cursor: pointer; transition: opacity 0.1s;
 }
+.proBtn:hover { opacity: 0.88; }
+.proBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Feature highlights ── */
+.highlights {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px; padding: 0 24px 40px; max-width: 900px; margin: 0 auto;
+}
+.highlightCard {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px;
+}
+.highlightCard h3 { font-size: 0.92rem; font-weight: 800; margin-bottom: 6px; }
+.highlightCard p { font-size: 0.78rem; color: var(--text-2); line-height: 1.6; margin: 0; }
+
+/* Legacy compat */
+.alreadyPro { padding: 40px 24px; }
+.proIcon { margin-bottom: 12px; color: var(--gold); }

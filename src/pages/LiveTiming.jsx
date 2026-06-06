@@ -163,6 +163,81 @@ function getCircuitSlug(name) {
   return lower.replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'') || null
 }
 
+
+// ── Track Map Panel ───────────────────────────────────────────────────────────
+function TrackMapPanel({ session, positions, drvMap, isPremium, styles }) {
+  const circuitName = session?.circuit_short_name ?? session?.country_name ?? session?.meeting_name ?? ''
+  let slug = getCircuitSlug(circuitName)
+  const imgUrl = slug ? `https://formula-timer.com/circuits/${slug}.png` : null
+
+  // Normalize positions to 0–100% for CSS overlay
+  const pts = Object.values(positions).filter(p => p.x && p.y)
+  let normPos = {}
+  if (isPremium && pts.length >= 3) {
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y)
+    const xMin = Math.min(...xs), xMax = Math.max(...xs)
+    const yMin = Math.min(...ys), yMax = Math.max(...ys)
+    for (const [dn, pos] of Object.entries(positions)) {
+      if (!pos.x || !pos.y) continue
+      normPos[dn] = {
+        left: `${((pos.x - xMin) / (xMax - xMin || 1)) * 86 + 7}%`,
+        top:  `${(1 - (pos.y - yMin) / (yMax - yMin || 1)) * 86 + 7}%`,
+      }
+    }
+  }
+
+  return (
+    <div className={styles.rpMapWrap}>
+      <div className={styles.mapToggles}>
+        <span className={styles.mapSessionLabel} style={{marginRight:'auto', textTransform:'uppercase', letterSpacing:'0.1em'}}>
+          {circuitName?.split(' ')[0] || 'TRACK MAP'}
+        </span>
+        {session?.session_name && <span style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.3)',fontFamily:'var(--font-mono)'}}>{session.session_name}</span>}
+        {isPremium && Object.keys(positions).length > 0 && (
+          <span style={{fontSize:'0.6rem',color:'#39d98a',fontFamily:'var(--font-mono)',marginLeft:6}}>● {Object.keys(positions).length} live</span>
+        )}
+      </div>
+
+      <div style={{flex:1, position:'relative', minHeight:0, overflow:'hidden'}}>
+        {imgUrl
+          ? <img src={imgUrl} alt={circuitName} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',objectPosition:'center',padding:'10px'}} onError={e=>e.target.style.display='none'} />
+          : <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.12)',fontSize:'0.75rem'}}>No circuit data</div>
+        }
+
+        {/* Live car dots — Pro only */}
+        {isPremium && Object.entries(normPos).map(([dn, pos]) => {
+          const drv = drvMap[Number(dn)]
+          if (!drv) return null
+          const col = `#${drv.team_colour ?? 'aaaaaa'}`
+          return (
+            <div key={dn} style={{position:'absolute',left:pos.left,top:pos.top,transform:'translate(-50%,-50%)',zIndex:10}}>
+              <div style={{width:20,height:20,borderRadius:'50%',background:col,border:'2px solid #000',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'6px',fontWeight:900,color:'#fff',fontFamily:'monospace',boxShadow:`0 0 5px ${col}88`}}>
+                {drv.name_acronym?.slice(0,3)}
+              </div>
+            </div>
+          )
+        })}
+
+        {imgUrl && !isPremium && Object.keys(positions).length === 0 && (
+          <div className={styles.mapNoData}>
+            <span style={{color:'var(--gold)',fontSize:'0.7rem'}}>⚡ Pro for live car tracking</span>
+          </div>
+        )}
+        {imgUrl && isPremium && Object.keys(positions).length === 0 && (
+          <div className={styles.mapNoData}>Waiting for live position data…</div>
+        )}
+      </div>
+
+      <div className={styles.mapLegend}>
+        <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#3671C6'}}/> S1</div>
+        <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#E8002D'}}/> S2</div>
+        <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#FF8000'}}/> S3</div>
+        <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#39d98a'}}/> DRS</div>
+      </div>
+    </div>
+  )
+}
+
 // ── Right panel: full track map with toggles + team radio + race control ──────
 function RightPanel({ session, standings, rc, isPremium }) {
   const [tab, setTab] = useState('map')
@@ -248,116 +323,7 @@ function RightPanel({ session, standings, rc, isPremium }) {
       </div>
 
       {/* ── Track Map tab ── */}
-      {tab === 'map' && (() => {
-        // Try multiple sources for circuit identification
-        const circuitName = session?.circuit_short_name ?? session?.country_name ?? session?.meeting_name ?? ''
-        let slug = getCircuitSlug(circuitName)
-        // Extra fallback: scan CIRCUIT_SLUGS keys for partial match
-        if (!slug && circuitName) {
-          const lower = circuitName.toLowerCase()
-          for (const [key, val] of Object.entries(CIRCUIT_SLUGS)) {
-            if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower.split(' ')[0])) {
-              slug = val; break
-            }
-          }
-        }
-        const imgUrl = slug ? `https://formula-timer.com/circuits/${slug}.png` : null
-        // Normalize positions to 0-100% for CSS overlay
-        const pts = Object.values(positions).filter(p => p.x && p.y)
-        let normPos = {}
-        if (pts.length >= 3) {
-          const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y)
-          const xMin=Math.min(...xs), xMax=Math.max(...xs)
-          const yMin=Math.min(...ys), yMax=Math.max(...ys)
-          for (const [dn, pos] of Object.entries(positions)) {
-            if (!pos.x || !pos.y) continue
-            normPos[dn] = {
-              left: `${((pos.x - xMin) / (xMax - xMin || 1)) * 86 + 7}%`,
-              top:  `${(1 - (pos.y - yMin) / (yMax - yMin || 1)) * 86 + 7}%`,
-            }
-          }
-        }
-        return (
-          <div className={styles.rpMapWrap}>
-            {/* Controls */}
-            <div className={styles.mapToggles}>
-              <span className={styles.mapSessionLabel} style={{marginRight:'auto', textTransform:'uppercase', letterSpacing:'0.1em'}}>
-                {session?.circuit_short_name ?? circuitName?.split(' ')[0] ?? 'TRACK MAP'}
-              </span>
-              {session?.session_name && <span style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.3)',fontFamily:'var(--font-mono)'}}>{session.session_name}</span>}
-              {Object.keys(positions).length > 0 && <span style={{fontSize:'0.6rem',color:'#39d98a',fontFamily:'var(--font-mono)',marginLeft:6}}>● {Object.keys(positions).length} live</span>}
-            </div>
-
-            {/* Map area — circuit image + car dot overlay */}
-            <div style={{flex:1,position:'relative',minHeight:0,overflow:'hidden'}}>
-              {/* Circuit image — the actual accurate track map */}
-              {imgUrl && (
-                <img
-                  src={imgUrl}
-                  alt={session?.circuit_short_name}
-                  style={{
-                    position:'absolute', inset:0,
-                    width:'100%', height:'100%',
-                    objectFit:'contain', objectPosition:'center',
-                    padding:'12px',
-                  }}
-                  onError={e => e.target.style.display='none'}
-                />
-              )}
-
-              {/* Car position dots — Pro only */}
-              {isPremium && Object.entries(normPos).map(([dn, pos]) => {
-                const drv = drvMap[Number(dn)]
-                if (!drv) return null
-                const col = `#${drv.team_colour ?? 'aaaaaa'}`
-                return (
-                  <div key={dn} style={{
-                    position:'absolute',
-                    left: pos.left, top: pos.top,
-                    transform:'translate(-50%,-50%)',
-                    zIndex:10,
-                  }}>
-                    <div style={{
-                      width:22, height:22, borderRadius:'50%',
-                      background:col, border:'2px solid #000',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:'7px', fontWeight:900, color:'#fff',
-                      fontFamily:'monospace', boxShadow:`0 0 6px ${col}88`,
-                      userSelect:'none',
-                    }}>
-                      {drv.name_acronym?.slice(0,3)}
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* No data overlay */}
-              {!imgUrl && Object.keys(normPos).length === 0 && (
-                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.15)',fontSize:'0.75rem',fontFamily:'monospace'}}>
-                  No circuit data
-                </div>
-              )}
-              {/* When no live positions, show drivers in P order around a simple path */}
-              {imgUrl && Object.keys(positions).length === 0 && Object.keys(drvMap).length === 0 && (
-                <div className={styles.mapNoData} style={{bottom:'50%',transform:'translateY(50%)'}}>
-                  No session active
-                </div>
-              )}
-              {imgUrl && Object.keys(positions).length === 0 && Object.keys(drvMap).length > 0 && (
-                <div className={styles.mapNoData}>No live position data</div>
-              )}
-            </div>
-
-            {/* Legend */}
-            <div className={styles.mapLegend}>
-              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#3671C6'}}/> S1</div>
-              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#E8002D'}}/> S2</div>
-              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#FF8000'}}/> S3</div>
-              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#39d98a'}}/> DRS</div>
-            </div>
-          </div>
-        )
-      })()}
+      {tab === 'map' && <TrackMapPanel session={session} positions={positions} drvMap={drvMap} isPremium={isPremium} styles={styles} />}
 
       {/* ── Team Radio tab ── */}
       {tab === 'radio' && (
@@ -474,78 +440,64 @@ export default function LiveTiming() {
   const [overtakes,   setOvertakes]   = useState([])
   const intervalRef = useRef(null)
 
+  // Track if component is still mounted to avoid state updates after unmount
+  const mountedRef = useRef(true)
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false } }, [])
+
   const fetchLive = useCallback(async () => {
+    if (!mountedRef.current) return
     try {
-      // Get latest session - if no live data (standings empty), fall back to last completed session
+      // Step 1: Get session (fast - cached after first call)
       const sess = await getLatestSession()
       const sk = sess?.session_key ?? 'latest'
-      const wthr = await getWeather(sk).catch(() => null)
-      const rcData = await getRaceControl(sk).catch(() => [])
-      let standing = await buildLiveStandings(sk)
 
-      // If no standings from 'latest', find the best session to show
-      if (!standing?.length) {
-        // Import getSessions to find current meeting sessions
-        const { getSessions: _getSess } = await import('../lib/openf1')
-        // First try: sessions from the current meeting week (within 7 days)
-        const now = new Date()
-        const weekAgo = new Date(now - 7 * 24 * 3600 * 1000)
-        const recentSess = await _getSess({ year: 2026 }).catch(() => [])
-        const thisWeek = (recentSess ?? [])
-          .filter(s => new Date(s.date_start) > weekAgo && new Date(s.date_start) < now)
-          .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
-        
-        const targetSess = thisWeek[0] ?? null
-        
-        if (targetSess) {
-          const hist = await buildHistoricalStandings(targetSess.session_key).catch(() => null)
-          standing = hist?.length ? hist : await buildLiveStandings(targetSess.session_key).catch(() => [])
-          setSession(targetSess)
-        } else {
-          // Last resort: most recent completed session of any kind
-          const bestSess = await getBestStandingsSession(2026).catch(() => null)
-          if (bestSess) {
-            const hist = await buildHistoricalStandings(bestSess.session_key).catch(() => null)
-            standing = hist?.length ? hist : await buildLiveStandings(bestSess.session_key).catch(() => [])
-            setSession(bestSess)
-          } else {
-            setSession(sess)
-          }
+      // Step 2: Fetch standings + weather + RC in parallel (not sequential)
+      const [standing, wthr, rcData] = await Promise.all([
+        buildLiveStandings(sk).catch(() => []),
+        getWeather(sk).catch(() => null),
+        getRaceControl(sk).catch(() => []),
+      ])
+
+      if (!mountedRef.current) return
+
+      // Step 3: If no live standings, try fallback (one attempt only, no chain)
+      let finalStanding = standing ?? []
+      let finalSession = sess
+
+      if (!finalStanding.length) {
+        const bestSess = await getBestStandingsSession(2026).catch(() => null)
+        if (bestSess && mountedRef.current) {
+          finalStanding = await buildHistoricalStandings(bestSess.session_key).catch(() => [])
+          finalSession = bestSess
         }
       } else {
-        setSession(sess)
+        finalSession = sess
       }
 
-      // If standings have #NNN names, patch them with a broader driver fetch
-      const hasNumberNames = standing.some(d => d.name_acronym?.startsWith('#'))
-      if (hasNumberNames && standing.length > 0) {
-        // Try fetching drivers for latest session as fallback
-        try {
-          const { getDrivers: _getDrivers } = await import('../lib/openf1')
-          const latestDrvs = await _getDrivers('latest').catch(() => [])
-          const fallbackDrvs = latestDrvs?.length ? latestDrvs : await _getDrivers(sk).catch(() => [])
-          if (fallbackDrvs?.length) {
-            const dMap = {}; for (const d of fallbackDrvs) dMap[d.driver_number] = d
-            standing = standing.map(d => ({
-              ...d,
-              name_acronym: dMap[d.driver_number]?.name_acronym ?? d.name_acronym,
-              full_name:    dMap[d.driver_number]?.full_name ?? d.full_name,
-              team_name:    dMap[d.driver_number]?.team_name ?? d.team_name,
-              team_colour:  dMap[d.driver_number]?.team_colour ?? d.team_colour,
-              headshot_url: dMap[d.driver_number]?.headshot_url ?? d.headshot_url,
-            }))
-          }
-        } catch {}
+      if (!mountedRef.current) return
+
+      // Step 4: Fix #NNN driver names (drivers should be in standings already from buildLiveStandings)
+      // Only do driver lookup if genuinely missing
+      if (finalStanding.some(d => d.name_acronym?.startsWith('#'))) {
+        const drvs = await getDrivers(sk).catch(() => [])
+        if (drvs?.length) {
+          const dm = {}; for (const d of drvs) dm[d.driver_number] = d
+          finalStanding = finalStanding.map(d => dm[d.driver_number]
+            ? { ...d, name_acronym: dm[d.driver_number].name_acronym, team_name: dm[d.driver_number].team_name, team_colour: dm[d.driver_number].team_colour }
+            : d
+          )
+        }
       }
 
-      setWeather(wthr); setRc(rcData || []); setStandings(standing)
-      // Fetch overtakes for races
-      if (sk && (sess?.session_name === 'Race' || sess?.session_type === 'Race')) {
-        getOvertakes(sk).then(ov => setOvertakes(ov ?? [])).catch(() => {})
-      }
-      setLastUpdate(new Date()); setError(null)
-    } catch { setError('Could not load live data.') }
-    finally { setLoading(false) }
+      if (!mountedRef.current) return
+      setSession(finalSession)
+      setWeather(wthr)
+      setRc(rcData || [])
+      setStandings(finalStanding)
+      setLastUpdate(new Date())
+      setError(null)
+    } catch { if (mountedRef.current) setError('Could not load timing data') }
+    finally { if (mountedRef.current) setLoading(false) }
   }, [])
 
   const fetchChamp = useCallback(async () => {
@@ -569,13 +521,19 @@ export default function LiveTiming() {
   }, [])
 
   useEffect(() => {
-    fetchLive(); fetchChamp()
-    // OpenF1 rate limit: 30 req/10s. buildLiveStandings uses 6 endpoints.
-    // Premium authenticated: poll every 3s (6 req / 3s = within limit)
-    // Free unauthenticated: poll every 8s
-    const ms = isPremium ? 3000 : 15000
+    // Initial load
+    fetchLive()
+    // Delay championship to not block initial render
+    const champTimer = setTimeout(fetchChamp, 3000)
+    
+    // Polling: Pro = 5s (fast enough, safe on rate limits), Free = 20s
+    const ms = isPremium ? 5000 : 20000
     intervalRef.current = setInterval(fetchLive, ms)
-    return () => clearInterval(intervalRef.current)
+    
+    return () => {
+      clearInterval(intervalRef.current)
+      clearTimeout(champTimer)
+    }
   }, [isPremium, fetchLive, fetchChamp])
 
   const rcReversed = [...rc].reverse()
