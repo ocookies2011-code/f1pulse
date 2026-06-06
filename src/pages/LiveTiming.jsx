@@ -186,14 +186,13 @@ function RightPanel({ session, standings, rc, isPremium }) {
       {/* ── Team Radio tab ── */}
       {tab === 'radio' && (
         <div className={styles.rpRadio}>
-          {!isPremium ? (
-            <div className={styles.rpGate}>
-              <Zap size={20} style={{color:'var(--gold)',marginBottom:8}} />
-              <p>Team radio playback is a Pro feature</p>
-              <Link to="/premium" className="btn btn-gold btn-sm" style={{marginTop:8}}>Upgrade to Pro</Link>
+          {radio.length === 0 ? (
+            <div className={styles.rpEmpty}>
+              {isPremium 
+                ? <>No team radio available<br/><span style={{fontSize:'0.7rem',opacity:0.5}}>Coverage is very limited in 2026</span></>
+                : <><Zap size={14} style={{color:'var(--gold)',marginBottom:6}}/><br/>Team radio requires Pro<br/><Link to="/premium" style={{color:'var(--gold)',fontSize:'0.72rem'}}>Upgrade →</Link></>
+              }
             </div>
-          ) : radio.length === 0 ? (
-            <div className={styles.rpEmpty}>No team radio available<br/><span style={{fontSize:'0.7rem',opacity:0.6}}>OpenF1 coverage is limited in 2026</span></div>
           ) : radio.map((r, i) => {
             const drv = standings.find(d => d.driver_number === r.driver_number)
             const col = `#${drv?.team_colour ?? '555555'}`
@@ -370,8 +369,12 @@ export default function LiveTiming() {
             {session ? (
               <>
                 <span className={styles.sessionDot} />
-                <span className={styles.sessionName}>{session.meeting_name}</span>
                 <span className={styles.sessionType}>{session.session_name}</span>
+                {(session.circuit_short_name || session.meeting_name) && (
+                  <span className={styles.sessionCircuit}>
+                    {session.circuit_short_name ?? session.meeting_name}
+                  </span>
+                )}
                 {weather && (
                   <span className={styles.weatherInline}>
                     <Thermometer size={11} /> {weather.track_temperature}°
@@ -436,12 +439,18 @@ export default function LiveTiming() {
                     <th className={styles.thNum}>LEADER</th>
                     <th className={styles.thNum}>LAST LAP</th>
                     <th className={styles.thMini}>MINI SECTORS</th>
-                    <th className={`${styles.thS1}`}><span style={{color:'#3671C6'}}>S1</span></th>
-                    <th className={`${styles.thS2}`}><span style={{color:'#E8002D'}}>S2</span></th>
-                    <th className={`${styles.thS3}`}><span style={{color:'#FF8000'}}>S3</span></th>
-                    <th className={`${styles.thS1} ${styles.thBest}`}><span style={{color:'#3671C6',opacity:0.6}}>S1</span><span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',marginLeft:2}}>PB</span></th>
-                    <th className={`${styles.thS2} ${styles.thBest}`}><span style={{color:'#E8002D',opacity:0.6}}>S2</span><span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',marginLeft:2}}>PB</span></th>
-                    <th className={`${styles.thS3} ${styles.thBest}`}><span style={{color:'#FF8000',opacity:0.6}}>S3</span><span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',marginLeft:2}}>PB</span></th>
+                    <th className={styles.thSecGroup} colSpan={3} style={{borderRight:'1px solid rgba(255,255,255,0.06)'}}>
+                      LAST SECTORS&nbsp;
+                      <span style={{color:'#3671C6',fontSize:'0.55rem'}}>S1</span>
+                      <span style={{color:'#E8002D',fontSize:'0.55rem'}}> S2</span>
+                      <span style={{color:'#FF8000',fontSize:'0.55rem'}}> S3</span>
+                    </th>
+                    <th className={styles.thSecGroup} colSpan={3}>
+                      BEST SECTORS&nbsp;
+                      <span style={{color:'#3671C6',fontSize:'0.55rem',opacity:0.7}}>S1</span>
+                      <span style={{color:'#E8002D',fontSize:'0.55rem',opacity:0.7}}> S2</span>
+                      <span style={{color:'#FF8000',fontSize:'0.55rem',opacity:0.7}}> S3</span>
+                    </th>
                     <th className={styles.thLap}>LAP</th>
                   </tr>
                 </thead>
@@ -576,13 +585,23 @@ export default function LiveTiming() {
         <div className={`${styles.champPanel} ${styles.champPenalties}`}>
           <div className={styles.champTitle} style={{color:'var(--red)'}}>PENALTIES</div>
           {(() => {
-            const pens = rc.filter(m => m.category==='CarEvent'&&m.message?.includes('PENALTY'))
-            const tls  = rc.filter(m => m.message?.includes('TRACK LIMITS')||m.message?.includes('DELETED'))
-            return pens.length===0&&tls.length===0
-              ? <span className={styles.noPenalty}>NO ACTIVE PENALTIES</span>
-              : <div className={styles.penRow}>
-                  {pens.length>0&&<span className={styles.penTag}>{pens.length} penalty</span>}
-                  {tls.length>0&&<span className={styles.tlTag}>{tls.length} TL violation</span>}
+            const pens = rc.filter(m => m.category==='CarEvent'&&(m.message?.includes('PENALTY')||m.message?.includes('DRIVE THROUGH')||m.message?.includes('STOP GO')))
+            const tls  = rc.filter(m => m.message?.toLowerCase().includes('track limit')||m.message?.toLowerCase().includes('deleted')||m.message?.toLowerCase().includes('time deleted'))
+            const all  = [...pens, ...tls].slice(-8).reverse()
+            return all.length===0
+              ? <div className={styles.noPenalty}>No active penalties</div>
+              : <div className={styles.penList}>
+                  {all.map((m,i) => {
+                    const isTL = !pens.includes(m)
+                    return (
+                      <div key={i} className={styles.penItem}>
+                        <span className={isTL ? styles.tlTag : styles.penTag}>
+                          {isTL ? 'TL' : 'PEN'}
+                        </span>
+                        <span className={styles.penMsg}>{m.message}</span>
+                      </div>
+                    )
+                  })}
                 </div>
           })()}
         </div>
