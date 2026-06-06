@@ -67,7 +67,12 @@
   flex-direction: column;
   border-right: 1px solid rgba(255,255,255,0.07);
 }
-.tableScroll { overflow-x: auto; overflow-y: auto; flex: 1; }
+.tableScroll { 
+  overflow-x: auto; 
+  overflow-y: auto; 
+  flex: 1;
+  min-height: 0;
+}
 
 /* ── Table — ultra dense like formula-timer ── */
 .table { width: 100%; border-collapse: collapse; font-size: 0.8rem; white-space: nowrap; }
@@ -77,15 +82,19 @@
   border-bottom: 2px solid rgba(255,255,255,0.12);
 }
 .table thead th {
-  padding: 6px 7px 5px;
+  padding: 7px 7px 6px;
   text-align: left;
-  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.6) !important;
+  font-size: 0.63rem; font-weight: 800; letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.65) !important;
   text-transform: uppercase;
-  border-right: 1px solid rgba(255,255,255,0.05);
-  position: sticky; top: 0; z-index: 5;
-  background: #111116;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #111116 !important;
   white-space: nowrap;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1);
 }
 .table thead th:last-child { border-right: none; }
 

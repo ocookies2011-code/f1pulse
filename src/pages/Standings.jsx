@@ -21,23 +21,29 @@ export default function Standings() {
   useEffect(() => {
     async function load() {
       try {
-        let sess = await getBestStandingsSession(2026)
-        // Fallback: if no completed race session, try any session from 2026
-        if (!sess) {
-          const allSess = await getSessions({ year: 2026 }).catch(() => [])
-          const started = allSess.filter(s => new Date(s.date_start) < new Date())
-            .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
-          sess = started[0] ?? null
+        // Get all 2026 sessions and find most recent race, or any session with champ data
+        const allSess = await getSessions({ year: 2026 }).catch(() => [])
+        const now = new Date()
+        const pastSess = (allSess ?? [])
+          .filter(s => new Date(s.date_start) < now)
+          .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+        
+        // Try sessions in order until we find one with championship data
+        let sess = null, champDrivers = null, champTeams = null, drvInfo = []
+        for (const s of pastSess.slice(0, 10)) {
+          const [cd, ct] = await Promise.all([
+            getChampionshipDrivers(s.session_key).catch(() => null),
+            getChampionshipTeams(s.session_key).catch(() => null),
+          ])
+          if (cd?.length || ct?.length) {
+            sess = s; champDrivers = cd; champTeams = ct
+            drvInfo = await getDrivers(s.session_key).catch(() => [])
+            break
+          }
         }
-        if (!sess) { setError('No session data available yet for 2026.'); return }
-
+        if (!sess) { setError('No championship data available yet for 2026.'); return }
         setSessionInfo(sess)
         const sk = sess.session_key
-
-        // Sequential to avoid 429
-        const champDrivers = await getChampionshipDrivers(sk).catch(() => null)
-        const drvInfo      = await getDrivers(sk).catch(() => [])
-        const champTeams   = await getChampionshipTeams(sk).catch(() => null)
 
         const drvMap = {}
         for (const d of drvInfo) drvMap[d.driver_number] = d
