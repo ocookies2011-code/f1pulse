@@ -116,19 +116,25 @@ export default function Calendar() {
   const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
-    getMeetings(2026).then(async data => {
-      const races = data
+    // Fetch meetings + ALL sessions in parallel (1 call each instead of 24 sequential)
+    Promise.all([
+      getMeetings(2026),
+      getSessions({ year: 2026 }),
+    ]).then(([data, allSessions]) => {
+      const races = (data ?? [])
         .filter(m => !m.meeting_name?.toLowerCase().includes('testing'))
         .sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
       setMeetings(races)
 
-      // Load sessions for all meetings
+      // Group all sessions by meeting_key
       const map = {}
-      for (const m of races) {
-        try {
-          const sess = await getSessions({ meeting_key: m.meeting_key })
-          map[m.meeting_key] = sess.sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
-        } catch { map[m.meeting_key] = [] }
+      for (const sess of (allSessions ?? [])) {
+        if (!map[sess.meeting_key]) map[sess.meeting_key] = []
+        map[sess.meeting_key].push(sess)
+      }
+      // Sort sessions by date within each meeting
+      for (const k of Object.keys(map)) {
+        map[k].sort((a,b) => new Date(a.date_start) - new Date(b.date_start))
       }
       setSessMap(map)
     }).catch(console.error).finally(() => setLoading(false))

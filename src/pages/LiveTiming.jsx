@@ -220,7 +220,7 @@ function RightPanel({ session, standings, rc, isPremium }) {
               <Link to="/premium" className="btn btn-gold btn-sm" style={{marginTop:8}}>Upgrade to Pro</Link>
             </div>
           ) : radio.length === 0 ? (
-            <div className={styles.rpEmpty}>No team radio messages yet</div>
+            <div className={styles.rpEmpty}>No team radio available<br/><span style={{fontSize:'0.7rem',opacity:0.6}}>OpenF1 coverage is limited in 2026</span></div>
           ) : radio.map((r, i) => {
             const drv = standings.find(d => d.driver_number === r.driver_number)
             const col = `#${drv?.team_colour ?? '555555'}`

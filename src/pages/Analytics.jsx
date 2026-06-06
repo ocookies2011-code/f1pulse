@@ -314,12 +314,18 @@ export default function Analytics() {
   const [tab,        setTab]        = useState('laps')
   const [loading,    setLoading]    = useState(true)
 
+  // Load meetings + all sessions in parallel on mount
+  const [allSessionsCache, setAllSessionsCache] = useState([])
   useEffect(() => {
-    import('../lib/openf1').then(({ getMeetings }) => {
-      getMeetings(2026).then(data => {
-        const races = data.filter(m => !m.meeting_name?.toLowerCase().includes('testing'))
+    import('../lib/openf1').then(({ getMeetings, getSessions: _getSessions }) => {
+      Promise.all([
+        getMeetings(2026),
+        _getSessions({ year: 2026 }),
+      ]).then(([data, allSess]) => {
+        const races = (data ?? []).filter(m => !m.meeting_name?.toLowerCase().includes('testing'))
           .sort((a,b) => new Date(b.date_start) - new Date(a.date_start))
         setMeetings(races)
+        setAllSessionsCache(allSess ?? [])
         if (races[0]) setSelMeeting(String(races[0].meeting_key))
       }).finally(() => setLoading(false))
     })
@@ -327,13 +333,13 @@ export default function Analytics() {
 
   useEffect(() => {
     if (!selMeeting) return
-    getSessions({ meeting_key: selMeeting }).then(d => {
-      const s = d.sort((a,b) => new Date(b.date_start) - new Date(a.date_start))
-      setSessions(s)
-      const race = s.find(x => x.session_name === 'Race') ?? s[0]
-      if (race) setSelSession(String(race.session_key))
-    }).catch(() => {})
-  }, [selMeeting])
+    const s = allSessionsCache
+      .filter(x => String(x.meeting_key) === String(selMeeting))
+      .sort((a,b) => new Date(b.date_start) - new Date(a.date_start))
+    setSessions(s)
+    const race = s.find(x => x.session_name === 'Race') ?? s[0]
+    if (race) setSelSession(String(race.session_key))
+  }, [selMeeting, allSessionsCache])
 
   useEffect(() => {
     if (!selSession) return
