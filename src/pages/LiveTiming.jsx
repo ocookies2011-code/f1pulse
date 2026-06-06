@@ -257,14 +257,26 @@ function RightPanel({ session, standings, rc, isPremium }) {
 }
 
 
+// Tyre compound images from formula-timer.com
+const TYRE_IMG_SLUGS = { SOFT:'soft', MEDIUM:'medium', HARD:'hard', INTERMEDIATE:'intermediate', WET:'wet' }
+
 function TyreChip({ compound, age }) {
   if (!compound) return <span className={styles.dash}>—</span>
   const k = compound.toUpperCase()
+  const slug = TYRE_IMG_SLUGS[k]
   const col = TYRE_COLOURS[k] ?? '#888'
+  const [imgFailed, setImgFailed] = useState(false)
   return (
     <span className={styles.tyreChip}>
-      <span className={styles.tyreDot} style={{ background: col }} />
-      <span style={{ color: col, fontWeight: 800 }}>{TYRE_LABELS[k] ?? compound[0]}</span>
+      {slug && !imgFailed
+        ? <img
+            src={`https://formula-timer.com/tyres/${slug}.svg`}
+            alt={k}
+            className={styles.tyreImg}
+            onError={() => setImgFailed(true)}
+          />
+        : <span className={styles.tyreDot} style={{ background: col }} />
+      }
       {age != null && <span className={styles.tyreAge}>{age}</span>}
     </span>
   )

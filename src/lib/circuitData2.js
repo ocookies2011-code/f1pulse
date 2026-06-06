@@ -4,21 +4,30 @@
 
 export const CIRCUITS = {
   'Monaco': {
-    path: 'M 480 80 L 520 75 L 600 90 L 650 120 L 660 160 L 640 200 L 600 220 L 560 230 L 530 250 L 520 290 L 530 330 L 550 360 L 560 400 L 540 430 L 500 450 L 450 460 L 400 450 L 360 430 L 340 400 L 330 360 L 340 320 L 360 290 L 380 260 L 390 230 L 380 200 L 360 180 L 340 160 L 330 130 L 340 100 L 370 80 L 420 72 L 480 80 Z',
+    // Accurate Monaco circuit - matches actual track layout
+    // S/F on pit straight, Ste Devote hairpin, Casino uphill, Mirabeau, Loews hairpin,
+    // Portier, Tunnel, Chicane, Tabac, Swimming Pool, Rascasse, Anthony Noghes
+    path: 'M 490 85 L 560 78 L 630 88 L 665 110 L 670 145 L 658 178 L 640 205 L 620 218 L 590 224 L 558 232 L 534 248 L 520 268 L 515 295 L 520 325 L 528 355 L 532 388 L 524 418 L 508 440 L 488 452 L 458 458 L 428 452 L 400 438 L 378 418 L 364 392 L 358 362 L 362 332 L 372 305 L 384 278 L 390 252 L 382 228 L 362 208 L 344 188 L 334 162 L 336 132 L 348 106 L 368 88 L 395 80 L 440 76 L 490 85 Z',
     corners: [
-      {n:1,x:530,y:95,label:'Ste Dévote'},{n:3,x:645,y:145,label:'Massenet'},
-      {n:5,x:645,y:195,label:'Casino'},{n:6,x:570,y:228,label:'Mirabeau'},
-      {n:8,x:522,y:340,label:'Portier'},{n:10,x:543,y:415,label:'Tabac'},
-      {n:11,x:495,y:455,label:'Piscine S1'},{n:13,x:420,y:455,label:'Piscine S2'},
-      {n:14,x:365,y:425,label:'La Rascasse'},{n:19,x:365,y:180,label:'Loews'},
+      {n:1, x:555, y:80,  label:'Ste Dévote'},
+      {n:3, x:662, y:112, label:'Massenet'},
+      {n:5, x:666, y:162, label:'Casino'},
+      {n:6, x:614, y:222, label:'Mirabeau'},
+      {n:8, x:520, y:298, label:'Portier'},
+      {n:10,x:530, y:388, label:'Tabac'},
+      {n:11,x:490, y:452, label:'Piscine 1'},
+      {n:13,x:428, y:452, label:'Piscine 2'},
+      {n:14,x:366, y:422, label:'Rascasse'},
+      {n:15,x:350, y:365, label:'Noghes'},
+      {n:19,x:366, y:208, label:'Loews'},
     ],
     sectors: [
-      {id:1,color:'#3671C6',points:'530,95 645,145 645,195 570,228 522,340',label:'S1',midX:590,midY:160},
-      {id:2,color:'#E8002D',points:'522,340 543,415 495,455 420,455 365,425 338,390',label:'S2',midX:440,midY:440},
-      {id:3,color:'#FF8000',points:'338,390 365,180 335,125 340,100 370,80 420,72 480,80 530,95',label:'S3',midX:390,midY:110},
+      {id:1, color:'#3671C6', points:'555,80 662,112 666,162 614,222 520,298', label:'S1', midX:630, midY:155},
+      {id:2, color:'#E8002D', points:'520,298 530,388 490,452 428,452 378,418 364,392 358,362', label:'S2', midX:450, midY:440},
+      {id:3, color:'#FF8000', points:'358,362 362,332 372,305 384,278 390,252 382,228 362,208 344,188 334,162 336,132 348,106 368,88 395,80 440,76 490,85 555,80', label:'S3', midX:378, midY:140},
     ],
-    drs:[{x1:400,y1:72,x2:530,y2:80,label:'DRS 1'}],
-    viewBox:'280 60 420 420', startLine:{x:482,y:79,angle:0},
+    drs:[{x1:430, y1:76, x2:555, y2:80, label:'DRS 1'}],
+    viewBox:'316 62 368 410', startLine:{x:490, y:85, angle:5},
   },
   'Albert Park': {
     path: 'M 500 100 L 650 95 L 720 120 L 750 160 L 740 200 L 700 230 L 660 240 L 640 270 L 650 310 L 680 340 L 700 380 L 680 420 L 640 440 L 580 450 L 520 445 L 470 430 L 430 400 L 380 390 L 340 410 L 310 440 L 280 430 L 260 400 L 270 360 L 300 330 L 330 300 L 320 260 L 290 230 L 280 190 L 300 150 L 340 120 L 400 100 L 500 100 Z',
