@@ -456,23 +456,38 @@
 /* ── Fixed table header (outside scroll so always visible) ── */
 .tableHeader {
   flex-shrink: 0;
-  overflow: hidden;
-  background: #111116;
-  border-bottom: 2px solid rgba(255,255,255,0.12);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #15151b;
+  border-bottom: 2px solid rgba(255,255,255,0.15);
+  scrollbar-width: none;
 }
+.tableHeader::-webkit-scrollbar { display: none; }
 .tableHeader table {
   width: 100%;
   border-collapse: collapse;
 }
 .tableHeader th {
-  padding: 7px 7px 6px;
-  font-size: 0.63rem;
-  font-weight: 800;
+  padding: 8px 8px 7px;
+  font-size: 0.65rem;
+  font-weight: 900;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.85);
   text-align: left;
   white-space: nowrap;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 1px solid rgba(255,255,255,0.08);
 }
 .tableHeader th:last-child { border-right: none; }
+
+/* ── Bottom panel: Radio rows ── */
+.radioRow { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.72rem; }
+.radioAcr { font-weight: 800; font-family: var(--font-mono); font-size: 0.75rem; flex-shrink: 0; width: 30px; }
+.radioAudio { flex: 1; height: 22px; filter: invert(1) brightness(0.7); min-width: 0; }
+.radioNoAudio { flex: 1; color: var(--text-3); font-size: 0.65rem; font-style: italic; }
+.radioTs { font-size: 0.62rem; color: var(--text-3); flex-shrink: 0; font-family: var(--font-mono); }
+
+/* ── Bottom panel: Race Control rows ── */
+.rcRow { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.72rem; }
+.rcTs { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-3); flex-shrink: 0; }
+.rcTxt { color: var(--text-2); line-height: 1.35; }

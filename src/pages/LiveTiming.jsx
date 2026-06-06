@@ -239,10 +239,10 @@ function TrackMapPanel({ session, positions, drvMap, isPremium, styles }) {
 }
 
 // ── Right panel: full track map with toggles + team radio + race control ──────
-function RightPanel({ session, standings, rc, isPremium }) {
+function RightPanel({ session, standings, rc, radio, isPremium }) {
   const [tab, setTab] = useState('map')
   const [positions, setPositions] = useState({})
-  const [radio, setRadio] = useState([])
+  // radio state now in parent LiveTiming
   const pollRef = useRef(null)
 
   // ── Fetch live car positions ──────────────────────────────────────────────
@@ -285,23 +285,13 @@ function RightPanel({ session, standings, rc, isPremium }) {
     } catch {}
   }, [session])
 
-  const fetchRadio = useCallback(async () => {
-    if (!session?.session_key || !isPremium) return
-    try {
-      const r = await getTeamRadio(session.session_key)
-      setRadio(r?.slice(-20).reverse() ?? [])
-    } catch {}
-  }, [session, isPremium])
-
   useEffect(() => {
     if (!session?.session_key) return
     fetchPos()
-    if (isPremium) fetchRadio()
-    // Position data updates every ~2s on OpenF1 for live sessions
     const posInterval = isPremium ? 2000 : 5000
-    pollRef.current = setInterval(() => { fetchPos(); if (isPremium) fetchRadio() }, posInterval)
+    pollRef.current = setInterval(fetchPos, posInterval)
     return () => clearInterval(pollRef.current)
-  }, [session?.session_key, fetchPos, fetchRadio, isPremium])
+  }, [session?.session_key, fetchPos, isPremium])
 
   const drvMap = {}
   for (const d of standings) drvMap[d.driver_number] = d
@@ -438,6 +428,7 @@ export default function LiveTiming() {
   const [champLoaded, setChampLoaded] = useState(false)
   const [selDriver,   setSelDriver]   = useState(null)  // for telemetry modal
   const [overtakes,   setOvertakes]   = useState([])
+  const [radio,       setRadio]       = useState([])    // team radio - top level so it persists
   const intervalRef = useRef(null)
 
   // Track if component is still mounted to avoid state updates after unmount
@@ -527,6 +518,19 @@ export default function LiveTiming() {
     // Delay championship to not block initial render
     const champTimer = setTimeout(fetchChamp, 3000)
     
+    // Fetch radio on its own slow interval (30s) - state lives here so it persists
+    async function doRadio() {
+      if (!mountedRef.current) return
+      try {
+        const sk = session?.session_key
+        if (!sk || !isPremium) return
+        const r = await getTeamRadio(sk)
+        if (mountedRef.current && r?.length) setRadio(r.slice(-25).reverse())
+      } catch {}
+    }
+    doRadio()
+    const radioTimer = setInterval(doRadio, 30000)
+    
     // Polling: Pro = 5s (fast enough, safe on rate limits), Free = 20s
     const ms = isPremium ? 5000 : 20000
     intervalRef.current = setInterval(fetchLive, ms)
@@ -534,6 +538,7 @@ export default function LiveTiming() {
     return () => {
       clearInterval(intervalRef.current)
       clearTimeout(champTimer)
+      clearInterval(radioTimer)
     }
   }, [isPremium, fetchLive, fetchChamp])
 
@@ -631,7 +636,7 @@ export default function LiveTiming() {
           ) : (
             <>
             {/* Fixed header — outside scroll so always visible */}
-            <div className={styles.tableHeader}>
+            <div className={styles.tableHeader} ref={el => { if (el) el.onscroll = () => {} }} id="lt-header">
               <table className={styles.table} style={{tableLayout:'fixed'}}>
                 <thead>
                   <tr className={styles.theadRow}>
@@ -659,7 +664,10 @@ export default function LiveTiming() {
               </table>
             </div>
             {/* Scrollable body */}
-            <div className={styles.tableScroll}>
+            <div className={styles.tableScroll} onScroll={e => {
+              const h = document.getElementById('lt-header')
+              if (h) h.scrollLeft = e.currentTarget.scrollLeft
+            }}>
               <table className={`${styles.table} ${compact?styles.compact:''}`} style={{tableLayout:'fixed'}}>
                 <tbody>
                   {standings.map((d, i) => {
@@ -765,35 +773,62 @@ export default function LiveTiming() {
 
         {/* Right panel: track map / team radio / race control */}
         {/* Always render RightPanel so tab state persists across refreshes */}
-        <RightPanel session={session} standings={standings} rc={rc} isPremium={isPremium} />
+        <RightPanel session={session} standings={standings} rc={rc} radio={radio} isPremium={isPremium} />
       </div>
 
-      {/* ── Bottom panels ── */}
+      {/* ── Bottom panels: Radio | Race Control | Penalties ── */}
       <div className={styles.bottomPanels}>
+
+        {/* Team Radio */}
         <div className={styles.champPanel}>
-          <div className={styles.champTitle}>DRIVER CHAMPIONSHIP</div>
-          {champLoaded ? drvChamp.map(d => (
-            <div key={d.acronym} className={styles.champRow}>
-              <span className={styles.champPos}>{d.pos}</span>
-              <span className={styles.champDot} style={{background:`#${d.colour}`}} />
-              <span className={styles.champName}>{d.acronym}</span>
-              <span className={styles.champPts}>{d.pts}</span>
+          <div className={styles.champTitle} style={{display:'flex',alignItems:'center',gap:6}}>
+            <Radio size={11}/> TEAM RADIO
+            {!isPremium && <span style={{fontSize:'0.55rem',color:'var(--gold)',marginLeft:'auto'}}>⚡ PRO</span>}
+          </div>
+          {!isPremium ? (
+            <div className={styles.champLoading} style={{color:'var(--text-3)',fontSize:'0.72rem'}}>
+              Upgrade to Pro to hear team radio
             </div>
-          )) : <div className={styles.champLoading}>Loading…</div>}
+          ) : radio.length === 0 ? (
+            <div className={styles.champLoading}>No radio messages yet</div>
+          ) : (
+            <div style={{overflowY:'auto',maxHeight:120}}>
+              {radio.map((r, i) => {
+                const drv = standings.find(d => d.driver_number === r.driver_number)
+                const col = `#${drv?.team_colour ?? '555'}`
+                return (
+                  <div key={i} className={styles.radioRow}>
+                    <span className={styles.radioAcr} style={{color:col}}>{drv?.name_acronym ?? `#${r.driver_number}`}</span>
+                    {r.recording_url
+                      ? <audio src={r.recording_url} controls className={styles.radioAudio} />
+                      : <span className={styles.radioNoAudio}>No audio</span>
+                    }
+                    <span className={styles.radioTs}>{r.date ? new Date(r.date).toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit'}) : ''}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        <div className={styles.champPanel}>
-          <div className={styles.champTitle}>TEAM CHAMPIONSHIP</div>
-          {champLoaded ? teamChamp.map(t => (
-            <div key={t.team} className={styles.champRow}>
-              <span className={styles.champPos}>{t.pos}</span>
-              <span className={styles.champDot} style={{background:`#${t.colour}`}} />
-              <span className={styles.champName}>{t.team?.replace(' F1 Team','').replace(' Racing','')}</span>
-              <span className={styles.champPts}>{t.pts}</span>
+        {/* Race Control */}
+        <div className={styles.champPanel} style={{flex:2}}>
+          <div className={styles.champTitle}>RACE CONTROL</div>
+          {rc.length === 0 ? (
+            <div className={styles.champLoading}>No messages</div>
+          ) : (
+            <div style={{overflowY:'auto',maxHeight:120}}>
+              {[...rc].reverse().slice(0,20).map((m, i) => (
+                <div key={i} className={`${styles.rcRow} ${m.flag==='RED'?styles.rcRed:m.flag?.includes('YELLOW')?styles.rcYellow:m.flag==='GREEN'||m.flag==='CHEQUERED'?styles.rcGreen:m.category==='SafetyCar'?styles.rcOrange:''}`}>
+                  <span className={styles.rcTs}>{m.date?new Date(m.date).toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit'}):''}</span>
+                  <span className={styles.rcTxt}>{m.message}</span>
+                </div>
+              ))}
             </div>
-          )) : <div className={styles.champLoading}>Loading…</div>}
+          )}
         </div>
 
+        {/* Penalties */}
         <div className={`${styles.champPanel} ${styles.champPenalties}`}>
           <div className={styles.champTitle} style={{color:'var(--red)'}}>PENALTIES</div>
           {(() => {
@@ -807,9 +842,7 @@ export default function LiveTiming() {
                     const isTL = !pens.includes(m)
                     return (
                       <div key={i} className={styles.penItem}>
-                        <span className={isTL ? styles.tlTag : styles.penTag}>
-                          {isTL ? 'TL' : 'PEN'}
-                        </span>
+                        <span className={isTL ? styles.tlTag : styles.penTag}>{isTL?'TL':'PEN'}</span>
                         <span className={styles.penMsg}>{m.message}</span>
                       </div>
                     )
