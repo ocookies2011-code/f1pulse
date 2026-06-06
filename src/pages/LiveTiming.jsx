@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio, Wind, Gauge, TrendingUp, X } from 'lucide-react'
 import {
@@ -433,7 +433,16 @@ export default function LiveTiming() {
       sessionRef.current = finalSession
       setWeather(wthr)
       setRc(rcData || [])
-      setStandings(finalStanding)
+      // Merge standings to avoid full re-render when only some values change
+      setStandings(prev => {
+        if (!prev.length) return finalStanding
+        // Same length and same driver order = update in place
+        if (prev.length === finalStanding.length &&
+            prev.every((p, i) => p.driver_number === finalStanding[i]?.driver_number)) {
+          return finalStanding // React diffs by key(driver_number), only changed rows re-render
+        }
+        return finalStanding
+      })
       setLastUpdate(new Date())
       setError(null)
     } catch { if (mountedRef.current) setError('Could not load timing data') }
@@ -583,32 +592,52 @@ export default function LiveTiming() {
           ) : standings.length === 0 ? (
             <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
           ) : (
-            <>
-            {/* Div-based header row - no sticky/overflow issues */}
-            <div className={styles.hdrRow} id="lt-header">
-              <span className={styles.hc} style={{width:28}}>PIT</span>
-              <span className={styles.hc} style={{width:34,textAlign:'center'}}>#</span>
-              <span className={styles.hc} style={{width:120}}>DRIVER</span>
-              <span className={styles.hc} style={{width:72}}>INTERVAL</span>
-              <span className={styles.hc} style={{width:52}}>TYRE</span>
-              <span className={styles.hc} style={{width:72}}>BEST LAP</span>
-              <span className={styles.hc} style={{width:68}}>LEADER</span>
-              <span className={styles.hc} style={{width:72}}>LAST LAP</span>
-              {isPremium && <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:90}}>MINI SECTORS</span>}
-              <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:58,textAlign:'right',color:'#3671C6'}}>S1</span>
-              <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:58,textAlign:'right',color:'#E8002D'}}>S2</span>
-              <span className={`${styles.hc} ${styles.hideMobile}`} style={{width:58,textAlign:'right',color:'#FF8000'}}>S3</span>
-              {isPremium && <>
-                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></span>
-                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></span>
-                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:58,textAlign:'right',color:'#FF8000',opacity:0.5}}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></span>
-                <span className={`${styles.hc} ${styles.hideTablet}`} style={{width:38,textAlign:'right',opacity:0.5}}>ST</span>
-              </>}
-              <span className={styles.hc} style={{width:34,textAlign:'right'}}>LAP</span>
-            </div>
-            {/* Scrollable body */}
-            <div className={styles.tableScroll} onScroll={e => { const h = document.getElementById('lt-header'); if (h) h.scrollLeft = e.currentTarget.scrollLeft }}>
-              <table className={`${styles.table} ${compact?styles.compact:''}`} style={{tableLayout:'fixed'}}>
+            <div className={styles.tableScroll}>
+              <table className={`${styles.table} ${compact?styles.compact:''}`}>
+                <colgroup>
+                  <col style={{width:28}}/>
+                  <col style={{width:34}}/>
+                  <col style={{width:120}}/>
+                  <col style={{width:72}}/>
+                  <col style={{width:52}}/>
+                  <col style={{width:72}}/>
+                  <col style={{width:68}}/>
+                  <col style={{width:72}}/>
+                  {isPremium && <col className={styles.hideMobile} style={{width:90}}/>}
+                  <col className={styles.hideMobile} style={{width:58}}/>
+                  <col className={styles.hideMobile} style={{width:58}}/>
+                  <col className={styles.hideMobile} style={{width:58}}/>
+                  {isPremium && <>
+                    <col className={styles.hideTablet} style={{width:58}}/>
+                    <col className={styles.hideTablet} style={{width:58}}/>
+                    <col className={styles.hideTablet} style={{width:58}}/>
+                    <col className={styles.hideTablet} style={{width:38}}/>
+                  </>}
+                  <col style={{width:34}}/>
+                </colgroup>
+                <thead className={styles.stickyHead}>
+                  <tr>
+                    <th>PIT</th>
+                    <th style={{textAlign:'center'}}>#</th>
+                    <th>DRIVER</th>
+                    <th>INTERVAL</th>
+                    <th>TYRE</th>
+                    <th>BEST LAP</th>
+                    <th>LEADER</th>
+                    <th>LAST LAP</th>
+                    {isPremium && <th className={styles.hideMobile}>MINI SECTORS</th>}
+                    <th className={styles.hideMobile} style={{textAlign:'right',color:'#3671C6'}}>S1</th>
+                    <th className={styles.hideMobile} style={{textAlign:'right',color:'#E8002D'}}>S2</th>
+                    <th className={styles.hideMobile} style={{textAlign:'right',color:'#FF8000'}}>S3</th>
+                    {isPremium && <>
+                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#3671C6',opacity:0.5}}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#E8002D',opacity:0.5}}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#FF8000',opacity:0.5}}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th className={styles.hideTablet} style={{textAlign:'right',opacity:0.5}}>ST</th>
+                    </>}
+                    <th style={{textAlign:'right'}}>LAP</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {standings.map((d, i) => {
                     const isP1  = i === 0
@@ -707,7 +736,6 @@ export default function LiveTiming() {
                 </tbody>
               </table>
             </div>
-            </>
           )}
         </div>
 

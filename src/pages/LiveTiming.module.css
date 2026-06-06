@@ -72,7 +72,6 @@
   overflow-y: auto; 
   flex: 1;
   min-height: 0;
-  /* Header is outside this container so scroll only applies to body */
 }
 
 /* ── Table — ultra dense like formula-timer ── */
@@ -496,3 +495,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Sticky table header — inside tableScroll overflow container ── */
+/* Works because thead is direct child of table, inside the overflow div */
+.stickyHead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #14141a;
+  padding: 8px 7px 7px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 2px solid rgba(255,255,255,0.15);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 2px 0 rgba(255,255,255,0.05);
+}
+.stickyHead th:last-child { border-right: none; }
