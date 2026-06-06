@@ -417,6 +417,7 @@ export default function LiveTiming() {
   const { isPremium } = useAuth()
   const [standings,   setStandings]   = useState([])
   const [session,     setSession]     = useState(null)
+  const sessionRef = useRef(null)  // ref so radio can always access latest session
   const [weather,     setWeather]     = useState(null)
   const [rc,          setRc]          = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -483,6 +484,7 @@ export default function LiveTiming() {
 
       if (!mountedRef.current) return
       setSession(finalSession)
+      sessionRef.current = finalSession
       setWeather(wthr)
       setRc(rcData || [])
       setStandings(finalStanding)
@@ -522,14 +524,20 @@ export default function LiveTiming() {
     async function doRadio() {
       if (!mountedRef.current) return
       try {
-        const sk = session?.session_key
-        if (!sk || !isPremium) return
+        const sk = sessionRef.current?.session_key
+        if (!sk) return
         const r = await getTeamRadio(sk)
-        if (mountedRef.current && r?.length) setRadio(r.slice(-25).reverse())
+        if (mountedRef.current && r?.length) setRadio(prev => {
+          // Merge new messages, keeping most recent 25
+          const existing = new Set(prev.map(x => x.date + x.driver_number))
+          const newMsgs = (r || []).filter(x => !existing.has(x.date + x.driver_number))
+          return [...newMsgs, ...prev].slice(0, 25)
+        })
       } catch {}
     }
-    doRadio()
-    const radioTimer = setInterval(doRadio, 30000)
+    // Fire radio fetch after session loads (delay 5s), then every 20s
+    const radioInitTimer = setTimeout(doRadio, 5000)
+    const radioTimer = setInterval(doRadio, 20000)
     
     // Polling: Pro = 5s (fast enough, safe on rate limits), Free = 20s
     const ms = isPremium ? 5000 : 20000
@@ -538,6 +546,7 @@ export default function LiveTiming() {
     return () => {
       clearInterval(intervalRef.current)
       clearTimeout(champTimer)
+      clearTimeout(radioInitTimer)
       clearInterval(radioTimer)
     }
   }, [isPremium, fetchLive, fetchChamp])
@@ -612,12 +621,6 @@ export default function LiveTiming() {
           <div className={styles.toggleGroup}>
             <button className={`${styles.toggle} ${compact?styles.toggleOn:''}`} onClick={()=>setCompact(v=>!v)}>Compact</button>
           </div>
-          {weather && (
-            <span className={styles.mobileWeather}>
-              🌡 {weather.track_temperature?.toFixed(0)}° TRC · {weather.air_temperature?.toFixed(0)}° AIR
-              {weather.rainfall > 0 && ' 🌧 WET'}
-            </span>
-          )}
           <span className={styles.refreshNote}>{isPremium ? '⚡ 3s · positions 2s' : '🔒 15s refresh — Pro for 3s'}</span>
         </div>
       </div>
@@ -635,39 +638,30 @@ export default function LiveTiming() {
             <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
           ) : (
             <>
-            {/* Fixed header — outside scroll so always visible */}
-            <div className={styles.tableHeader} ref={el => { if (el) el.onscroll = () => {} }} id="lt-header">
-              <table className={styles.table} style={{tableLayout:'fixed'}}>
-                <thead>
-                  <tr className={styles.theadRow}>
-                    <th style={{width:28}}>PIT</th>
-                    <th style={{width:34,textAlign:'center'}}>#</th>
-                    <th style={{width:120}}>DRIVER</th>
-                    <th style={{width:72}}>INTERVAL</th>
-                    <th style={{width:52}}>TYRE</th>
-                    <th style={{width:72}}>BEST LAP</th>
-                    <th style={{width:68}}>LEADER</th>
-                    <th style={{width:72}}>LAST LAP</th>
-                    {isPremium && <th style={{width:90}} className={styles.hideMobile}>MINI SECTORS</th>}
-                    <th style={{width:58,textAlign:'right',color:'#3671C6'}} className={styles.hideMobile}>S1</th>
-                    <th style={{width:58,textAlign:'right',color:'#E8002D'}} className={styles.hideMobile}>S2</th>
-                    <th style={{width:58,textAlign:'right',color:'#FF8000'}} className={styles.hideMobile}>S3</th>
-                    {isPremium && <>
-                      <th style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                      <th style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                      <th style={{width:58,textAlign:'right',color:'#FF8000',opacity:0.5}} className={styles.hideTablet}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                      <th style={{width:38,textAlign:'right'}} className={styles.hideTablet}>ST</th>
-                    </>}
-                    <th style={{width:34,textAlign:'right'}}>LAP</th>
-                  </tr>
-                </thead>
-              </table>
+            {/* Div-based header row - no sticky/overflow issues */}
+            <div className={styles.hdrRow} id="lt-header">
+              <div style={{width:28,flexShrink:0}}>PIT</div>
+              <div style={{width:34,flexShrink:0,textAlign:'center'}}>#</div>
+              <div style={{width:120,flexShrink:0}}>DRIVER</div>
+              <div style={{width:72,flexShrink:0}}>INTERVAL</div>
+              <div style={{width:52,flexShrink:0}}>TYRE</div>
+              <div style={{width:72,flexShrink:0}}>BEST LAP</div>
+              <div style={{width:68,flexShrink:0}}>LEADER</div>
+              <div style={{width:72,flexShrink:0}}>LAST LAP</div>
+              {isPremium && <div style={{width:90,flexShrink:0}} className={styles.hideMobile}>MINI SECTORS</div>}
+              <div style={{width:58,flexShrink:0,textAlign:'right',color:'#3671C6',marginLeft:'auto'}} className={styles.hideMobile}>S1</div>
+              <div style={{width:58,flexShrink:0,textAlign:'right',color:'#E8002D'}} className={styles.hideMobile}>S2</div>
+              <div style={{width:58,flexShrink:0,textAlign:'right',color:'#FF8000'}} className={styles.hideMobile}>S3</div>
+              {isPremium && <>
+                <div style={{width:58,flexShrink:0,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></div>
+                <div style={{width:58,flexShrink:0,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></div>
+                <div style={{width:58,flexShrink:0,textAlign:'right',color:'#FF8000',opacity:0.5}} className={styles.hideTablet}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></div>
+                <div style={{width:38,flexShrink:0,textAlign:'right',opacity:0.5}} className={styles.hideTablet}>ST</div>
+              </>}
+              <div style={{width:34,flexShrink:0,textAlign:'right'}}>LAP</div>
             </div>
             {/* Scrollable body */}
-            <div className={styles.tableScroll} onScroll={e => {
-              const h = document.getElementById('lt-header')
-              if (h) h.scrollLeft = e.currentTarget.scrollLeft
-            }}>
+            <div className={styles.tableScroll} onScroll={e => { const h = document.getElementById('lt-header'); if (h) h.scrollLeft = e.currentTarget.scrollLeft }}>
               <table className={`${styles.table} ${compact?styles.compact:''}`} style={{tableLayout:'fixed'}}>
                 <tbody>
                   {standings.map((d, i) => {
@@ -785,14 +779,10 @@ export default function LiveTiming() {
             <Radio size={11}/> TEAM RADIO
             {!isPremium && <span style={{fontSize:'0.55rem',color:'var(--gold)',marginLeft:'auto'}}>⚡ PRO</span>}
           </div>
-          {!isPremium ? (
-            <div className={styles.champLoading} style={{color:'var(--text-3)',fontSize:'0.72rem'}}>
-              Upgrade to Pro to hear team radio
-            </div>
-          ) : radio.length === 0 ? (
-            <div className={styles.champLoading}>No radio messages yet</div>
+          {radio.length === 0 ? (
+            <div className={styles.champLoading}>{isPremium ? 'No radio messages yet' : 'Pro feature'}</div>
           ) : (
-            <div style={{overflowY:'auto',maxHeight:120}}>
+            <div style={{overflowY:'auto',flex:1}}>
               {radio.map((r, i) => {
                 const drv = standings.find(d => d.driver_number === r.driver_number)
                 const col = `#${drv?.team_colour ?? '555'}`
@@ -817,8 +807,8 @@ export default function LiveTiming() {
           {rc.length === 0 ? (
             <div className={styles.champLoading}>No messages</div>
           ) : (
-            <div style={{overflowY:'auto',maxHeight:120}}>
-              {[...rc].reverse().slice(0,20).map((m, i) => (
+            <div style={{overflowY:'auto',flex:1}}>
+              {[...rc].reverse().slice(0,50).map((m, i) => (
                 <div key={i} className={`${styles.rcRow} ${m.flag==='RED'?styles.rcRed:m.flag?.includes('YELLOW')?styles.rcYellow:m.flag==='GREEN'||m.flag==='CHEQUERED'?styles.rcGreen:m.category==='SafetyCar'?styles.rcOrange:''}`}>
                   <span className={styles.rcTs}>{m.date?new Date(m.date).toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit'}):''}</span>
                   <span className={styles.rcTxt}>{m.message}</span>

@@ -454,31 +454,31 @@
 }
 
 /* ── Fixed table header (outside scroll so always visible) ── */
-.tableHeader {
+/* Div-based header row — no sticky/overflow conflicts */
+.hdrRow {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  background: #15151b;
-  border-bottom: 2px solid rgba(255,255,255,0.15);
   scrollbar-width: none;
-}
-.tableHeader::-webkit-scrollbar { display: none; }
-.tableHeader table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.tableHeader th {
-  padding: 8px 8px 7px;
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.07em;
+  background: #14141a;
+  border-bottom: 2px solid rgba(255,255,255,0.14);
+  padding: 0 7px;
+  min-height: 32px;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.85);
-  text-align: left;
+  color: rgba(255,255,255,0.8);
   white-space: nowrap;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  gap: 0;
 }
-.tableHeader th:last-child { border-right: none; }
+.hdrRow::-webkit-scrollbar { display: none; }
+.hdrRow > div {
+  padding: 0 7px;
+  flex-shrink: 0;
+}
 
 /* ── Bottom panel: Radio rows ── */
 .radioRow { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.72rem; }
