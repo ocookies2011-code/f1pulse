@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio } from 'lucide-react'
 import { getCircuitByName } from '../lib/circuitData2'
 import {
-  buildLiveStandings, getLatestSession, getWeather, getRaceControl,
+  buildLiveStandings, buildHistoricalStandings, getLatestSession, getWeather, getRaceControl,
   getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
   getDrivers, getTeamRadio, fmt, fmtGap
 } from '../lib/openf1'
@@ -303,11 +303,29 @@ export default function LiveTiming() {
 
   const fetchLive = useCallback(async () => {
     try {
+      // Get latest session - if no live data (standings empty), fall back to last completed session
       const sess = await getLatestSession()
-      const wthr = await getWeather('latest')
-      const rcData = await getRaceControl('latest').catch(() => [])
-      const standing = await buildLiveStandings('latest')
-      setSession(sess); setWeather(wthr); setRc(rcData || []); setStandings(standing)
+      const sk = sess?.session_key ?? 'latest'
+      const wthr = await getWeather(sk).catch(() => null)
+      const rcData = await getRaceControl(sk).catch(() => [])
+      let standing = await buildLiveStandings(sk)
+
+      // If no standings from 'latest', try the best completed session (last race/quali)
+      if (!standing?.length) {
+        const bestSess = await getBestStandingsSession(2026).catch(() => null)
+        if (bestSess) {
+          // Try historical result first (cleaner for completed sessions)
+          const hist = await buildHistoricalStandings(bestSess.session_key).catch(() => null)
+          standing = hist?.length ? hist : await buildLiveStandings(bestSess.session_key).catch(() => [])
+          setSession(bestSess)
+        } else {
+          setSession(sess)
+        }
+      } else {
+        setSession(sess)
+      }
+
+      setWeather(wthr); setRc(rcData || []); setStandings(standing)
       setLastUpdate(new Date()); setError(null)
     } catch { setError('Could not load live data.') }
     finally { setLoading(false) }
@@ -368,7 +386,7 @@ export default function LiveTiming() {
                   </span>
                 )}
               </>
-            ) : <span className={styles.noSession}>No active session</span>}
+            ) : <span className={styles.noSession}>No live session — showing last session</span>}
           </div>
           <div className={styles.topRight}>
             {latestFlag && <RCBadge msg={latestFlag} />}
@@ -390,7 +408,7 @@ export default function LiveTiming() {
           <div className={styles.toggleGroup}>
             <button className={`${styles.toggle} ${compact?styles.toggleOn:''}`} onClick={()=>setCompact(v=>!v)}>Compact</button>
           </div>
-          <span className={styles.refreshNote}>{isPremium ? '⚡ ~4s refresh (Pro)' : '~10s refresh · Upgrade for 4s'}</span>
+          <span className={styles.refreshNote}>{isPremium ? '⚡ ~4s · ±0.001s precision' : '~10s refresh · ±0.001s precision'}</span>
         </div>
       </div>
 
@@ -404,7 +422,7 @@ export default function LiveTiming() {
           ) : error ? (
             <div className={styles.emptyState}><AlertTriangle size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>{error}</p></div>
           ) : standings.length === 0 ? (
-            <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>No active session. Data appears automatically.</p></div>
+            <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
           ) : (
             <div className={styles.tableScroll}>
               <table className={`${styles.table} ${compact?styles.compact:''}`}>

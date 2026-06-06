@@ -238,6 +238,87 @@ export async function buildLiveStandings(session_key = 'latest') {
   })
 }
 
+// ── Build standings from completed session result (cleaner for historical sessions) ──
+export async function buildHistoricalStandings(session_key) {
+  try {
+    const [result, drivers, stints] = await Promise.all([
+      getSessionResult(session_key).catch(() => null),
+      getDrivers(session_key).catch(() => []),
+      getStints(session_key).catch(() => []),
+    ])
+
+    if (!result?.length) return null
+
+    const drvMap = {}
+    for (const d of drivers) drvMap[d.driver_number] = d
+
+    // Build lap data for best laps
+    const laps = await getAllLaps(session_key).catch(() => [])
+    const lapMap = {}
+    for (const l of laps) {
+      if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []
+      lapMap[l.driver_number].push(l)
+    }
+
+    // Best sectors
+    const bestSectors = [null, null, null]
+    let globalBest = null
+    for (const dl of Object.values(lapMap)) {
+      for (const l of dl) {
+        if (l.lap_duration && (!globalBest || l.lap_duration < globalBest)) globalBest = l.lap_duration
+        if (l.duration_sector_1 && (!bestSectors[0] || l.duration_sector_1 < bestSectors[0])) bestSectors[0] = l.duration_sector_1
+        if (l.duration_sector_2 && (!bestSectors[1] || l.duration_sector_2 < bestSectors[1])) bestSectors[1] = l.duration_sector_2
+        if (l.duration_sector_3 && (!bestSectors[2] || l.duration_sector_3 < bestSectors[2])) bestSectors[2] = l.duration_sector_3
+      }
+    }
+
+    // Stint data
+    const stintMap = {}
+    for (const s of stints) {
+      if (!stintMap[s.driver_number] || s.stint_number > stintMap[s.driver_number].stint_number)
+        stintMap[s.driver_number] = s
+    }
+    const pitMap = {}
+    for (const s of stints) pitMap[s.driver_number] = (pitMap[s.driver_number] ?? 0)
+    for (const s of stints) { if (s.lap_start > 1) pitMap[s.driver_number] = (pitMap[s.driver_number] ?? 0) + 1 }
+
+    return result.sort((a, b) => a.position - b.position).map(r => {
+      const drv = drvMap[r.driver_number] ?? {}
+      const dl = lapMap[r.driver_number] ?? []
+      const lastLap = dl[dl.length - 1]
+      const bestLap = dl.reduce((b, l) => l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b, null)
+      const stint = stintMap[r.driver_number]
+      const lapNum = lastLap?.lap_number ?? 0
+      const tyreAge = stint ? lapNum - (stint.lap_start ?? 0) + (stint.tyre_age_at_start ?? 0) : null
+
+      return {
+        position:       r.position,
+        driver_number:  r.driver_number,
+        name_acronym:   drv.name_acronym ?? `#${r.driver_number}`,
+        full_name:      drv.full_name ?? '',
+        team_name:      drv.team_name ?? '',
+        team_colour:    drv.team_colour ?? '555555',
+        headshot_url:   drv.headshot_url ?? null,
+        tyre:           stint?.compound ?? null,
+        tyre_age:       tyreAge,
+        pit_stops:      pitMap[r.driver_number] ?? 0,
+        last_lap:       lastLap?.lap_duration ?? null,
+        best_lap:       bestLap?.lap_duration ?? null,
+        is_personal_best: bestLap && lastLap && bestLap.lap_number === lastLap.lap_number,
+        is_overall_best:  lastLap?.lap_duration === globalBest,
+        lap_number:     lapNum,
+        gap_to_leader:  r.time ? (r.position === 1 ? null : r.time) : null,
+        interval:       r.time ?? null,
+        is_pit_out_lap: false,
+        sectors:        lastLap ? [lastLap.duration_sector_1, lastLap.duration_sector_2, lastLap.duration_sector_3] : [],
+        best_sectors:   bestSectors,
+        segments:       [],
+        all_laps:       dl,
+      }
+    })
+  } catch { return null }
+}
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 export function fmt(s) {
   if (!s) return '--:--.---'
