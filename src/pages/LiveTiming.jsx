@@ -153,17 +153,37 @@ function RightPanel({ session, standings, rc, isPremium }) {
     try {
       const supaUrl  = import.meta.env.VITE_SUPABASE_URL
       const supaAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
-      const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, { method:'POST', headers:{ Authorization:`Bearer ${supaAnon}` } })
       let headers = {}
-      if (tokenRes.ok) { const { access_token } = await tokenRes.json(); if (access_token) headers.Authorization = `Bearer ${access_token}` }
-      const now  = new Date(); const from = new Date(now - 8000).toISOString()
-      const res  = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${from}`, { headers })
-      if (!res.ok) return
-      const raw  = await res.json()
-      if (!raw?.length) return
-      const latest = {}
-      for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
-      setPositions(latest)
+      if (supaUrl && supaAnon) {
+        try {
+          const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, { method:'POST', headers:{ Authorization:`Bearer ${supaAnon}` } })
+          if (tokenRes.ok) { const { access_token } = await tokenRes.json(); if (access_token) headers.Authorization = `Bearer ${access_token}` }
+        } catch {}
+      }
+      // Try live positions first (last 8 seconds)
+      const now = new Date()
+      const from = new Date(now - 8000).toISOString()
+      const liveRes = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${from}`, { headers })
+      if (liveRes.ok) {
+        const raw = await liveRes.json()
+        if (raw?.length) {
+          const latest = {}
+          for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
+          setPositions(latest)
+          return
+        }
+      }
+      // No live data — try fetching last known positions for this session (last 60s window)
+      const fromWide = new Date(now - 60000).toISOString()
+      const histRes = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${fromWide}`, { headers })
+      if (histRes.ok) {
+        const raw = await histRes.json()
+        if (raw?.length) {
+          const latest = {}
+          for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
+          setPositions(latest)
+        }
+      }
     } catch {}
   }, [session])
 
@@ -206,7 +226,18 @@ function RightPanel({ session, standings, rc, isPremium }) {
 
       {/* ── Track Map tab ── */}
       {tab === 'map' && (() => {
-        const slug = getCircuitSlug(session?.circuit_short_name)
+        // Try multiple sources for circuit identification
+        const circuitName = session?.circuit_short_name ?? session?.country_name ?? session?.meeting_name ?? ''
+        let slug = getCircuitSlug(circuitName)
+        // Extra fallback: scan CIRCUIT_SLUGS keys for partial match
+        if (!slug && circuitName) {
+          const lower = circuitName.toLowerCase()
+          for (const [key, val] of Object.entries(CIRCUIT_SLUGS)) {
+            if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower.split(' ')[0])) {
+              slug = val; break
+            }
+          }
+        }
         const imgUrl = slug ? `https://formula-timer.com/circuits/${slug}.png` : null
         // Normalize positions to 0-100% for CSS overlay
         const pts = Object.values(positions).filter(p => p.x && p.y)
@@ -227,8 +258,11 @@ function RightPanel({ session, standings, rc, isPremium }) {
           <div className={styles.rpMapWrap}>
             {/* Controls */}
             <div className={styles.mapToggles}>
-              <span className={styles.mapSessionLabel} style={{marginRight:'auto'}}>{session?.circuit_short_name ?? ''}</span>
-              {Object.keys(positions).length > 0 && <span style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.35)',fontFamily:'var(--font-mono)'}}>{Object.keys(positions).length} cars live</span>}
+              <span className={styles.mapSessionLabel} style={{marginRight:'auto', textTransform:'uppercase', letterSpacing:'0.1em'}}>
+                {session?.circuit_short_name ?? circuitName?.split(' ')[0] ?? 'TRACK MAP'}
+              </span>
+              {session?.session_name && <span style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.3)',fontFamily:'var(--font-mono)'}}>{session.session_name}</span>}
+              {Object.keys(positions).length > 0 && <span style={{fontSize:'0.6rem',color:'#39d98a',fontFamily:'var(--font-mono)',marginLeft:6}}>● {Object.keys(positions).length} live</span>}
             </div>
 
             {/* Map area — circuit image + car dot overlay */}
@@ -280,8 +314,14 @@ function RightPanel({ session, standings, rc, isPremium }) {
                   No circuit data
                 </div>
               )}
-              {imgUrl && Object.keys(positions).length === 0 && (
-                <div className={styles.mapNoData}>Waiting for live position data…</div>
+              {/* When no live positions, show drivers in P order around a simple path */}
+              {imgUrl && Object.keys(positions).length === 0 && Object.keys(drvMap).length === 0 && (
+                <div className={styles.mapNoData} style={{bottom:'50%',transform:'translateY(50%)'}}>
+                  No session active
+                </div>
+              )}
+              {imgUrl && Object.keys(positions).length === 0 && Object.keys(drvMap).length > 0 && (
+                <div className={styles.mapNoData}>No live position data</div>
               )}
             </div>
 
@@ -420,16 +460,34 @@ export default function LiveTiming() {
       const rcData = await getRaceControl(sk).catch(() => [])
       let standing = await buildLiveStandings(sk)
 
-      // If no standings from 'latest', try the best completed session (last race/quali)
+      // If no standings from 'latest', find the best session to show
       if (!standing?.length) {
-        const bestSess = await getBestStandingsSession(2026).catch(() => null)
-        if (bestSess) {
-          // Try historical result first (cleaner for completed sessions)
-          const hist = await buildHistoricalStandings(bestSess.session_key).catch(() => null)
-          standing = hist?.length ? hist : await buildLiveStandings(bestSess.session_key).catch(() => [])
-          setSession(bestSess)
+        // Import getSessions to find current meeting sessions
+        const { getSessions: _getSess } = await import('../lib/openf1')
+        // First try: sessions from the current meeting week (within 7 days)
+        const now = new Date()
+        const weekAgo = new Date(now - 7 * 24 * 3600 * 1000)
+        const recentSess = await _getSess({ year: 2026 }).catch(() => [])
+        const thisWeek = (recentSess ?? [])
+          .filter(s => new Date(s.date_start) > weekAgo && new Date(s.date_start) < now)
+          .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+        
+        const targetSess = thisWeek[0] ?? null
+        
+        if (targetSess) {
+          const hist = await buildHistoricalStandings(targetSess.session_key).catch(() => null)
+          standing = hist?.length ? hist : await buildLiveStandings(targetSess.session_key).catch(() => [])
+          setSession(targetSess)
         } else {
-          setSession(sess)
+          // Last resort: most recent completed session of any kind
+          const bestSess = await getBestStandingsSession(2026).catch(() => null)
+          if (bestSess) {
+            const hist = await buildHistoricalStandings(bestSess.session_key).catch(() => null)
+            standing = hist?.length ? hist : await buildLiveStandings(bestSess.session_key).catch(() => [])
+            setSession(bestSess)
+          } else {
+            setSession(sess)
+          }
         }
       } else {
         setSession(sess)
