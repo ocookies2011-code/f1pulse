@@ -782,7 +782,7 @@ export default function LiveTiming() {
           {radio.length === 0 ? (
             <div className={styles.champLoading}>{isPremium ? 'No radio messages yet' : 'Pro feature'}</div>
           ) : (
-            <div style={{overflowY:'auto',flex:1}}>
+            <div style={{overflowY:'auto',height:148}}>
               {radio.map((r, i) => {
                 const drv = standings.find(d => d.driver_number === r.driver_number)
                 const col = `#${drv?.team_colour ?? '555'}`
@@ -807,8 +807,8 @@ export default function LiveTiming() {
           {rc.length === 0 ? (
             <div className={styles.champLoading}>No messages</div>
           ) : (
-            <div style={{overflowY:'auto',flex:1}}>
-              {[...rc].reverse().slice(0,50).map((m, i) => (
+            <div style={{overflowY:'auto',height:148}}>
+              {[...rc].reverse().slice(0,80).map((m, i) => (
                 <div key={i} className={`${styles.rcRow} ${m.flag==='RED'?styles.rcRed:m.flag?.includes('YELLOW')?styles.rcYellow:m.flag==='GREEN'||m.flag==='CHEQUERED'?styles.rcGreen:m.category==='SafetyCar'?styles.rcOrange:''}`}>
                   <span className={styles.rcTs}>{m.date?new Date(m.date).toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit'}):''}</span>
                   <span className={styles.rcTxt}>{m.message}</span>
