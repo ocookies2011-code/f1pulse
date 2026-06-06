@@ -55,18 +55,19 @@
   height: 0;
   min-height: 0;
   overflow: hidden;
+  /* Right panel must ALWAYS be visible - table scrolls inside tableCol */
 }
 
 /* ── Table column ── */
 .tableCol {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow: hidden;  /* clips internally, right panel stays visible */
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255,255,255,0.07);
 }
-.tableScroll { overflow-x: auto; overflow-y: auto; }
+.tableScroll { overflow-x: auto; overflow-y: auto; flex: 1; }
 
 /* ── Table — ultra dense like formula-timer ── */
 .table { width: 100%; border-collapse: collapse; font-size: 0.8rem; white-space: nowrap; }
@@ -84,9 +85,10 @@
 .thPit  { width: 28px; }
 .thPos  { width: 34px; text-align: center !important; }
 .thDriver { width: 120px; max-width: 120px; }
-.thNum  { width: 80px; }
+.thNum  { width: 68px; }
+.thLeader { width: 68px; }
 .thTyre { width: 58px; }
-.thMini { width: 100px; }
+.thMini { width: 90px; }
 .thSec  { width: 145px; }
 /* Individual sector columns */
 .thS1 { width: 56px; text-align: right !important; padding-right: 6px !important; }
@@ -172,7 +174,7 @@
 
 /* ── Right panel ── */
 .rightPanel {
-  width: clamp(380px, 42%, 580px);
+  width: clamp(340px, 40%, 560px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -370,7 +372,8 @@
 .thSecCell {
   width: 56px; text-align: right !important;
   padding-right: 8px !important; padding-left: 2px !important;
-  font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em;
+  font-size: 0.7rem; font-weight: 900; letter-spacing: 0.03em;
+  opacity: 1 !important;
 }
 
 /* ── Tablet: stack vertically ── */
