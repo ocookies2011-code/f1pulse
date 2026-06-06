@@ -4,7 +4,7 @@ import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio,
 import {
   buildLiveStandings, buildHistoricalStandings, getLatestSession, getWeather, getRaceControl,
   getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
-  getDrivers, getTeamRadio, getOvertakes, getCarData, fmt, fmtGap, fmtS
+  getDrivers, getTeamRadio, getOvertakes, getCarData, fmt, fmtGap
 } from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
 import styles from './LiveTiming.module.css'
