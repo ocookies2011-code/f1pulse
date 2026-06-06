@@ -13,7 +13,7 @@ Deno.serve(async (req: Request) => {
 
   if (!username || !password) {
     return new Response(
-      JSON.stringify({ error: 'OpenF1 credentials not configured' }),
+      JSON.stringify({ error: 'OpenF1 credentials not configured', username_set: !!username, password_set: !!password }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     )
   }
@@ -38,6 +38,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const data = await res.json()
+    if (!data.access_token) {
+      return new Response(
+        JSON.stringify({ error: 'No access_token in OpenF1 response', raw: data }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
+
     return new Response(
       JSON.stringify({
         access_token: data.access_token,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Trophy, Info } from 'lucide-react'
-import { getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams, getDrivers } from '../lib/openf1'
+import { getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams, getDrivers, getSessions } from '../lib/openf1'
 import styles from './Standings.module.css'
 
 function medal(pos) {
@@ -21,8 +21,15 @@ export default function Standings() {
   useEffect(() => {
     async function load() {
       try {
-        const sess = await getBestStandingsSession(2026)
-        if (!sess) { setError('No completed sessions found yet for 2026.'); return }
+        let sess = await getBestStandingsSession(2026)
+        // Fallback: if no completed race session, try any session from 2026
+        if (!sess) {
+          const allSess = await getSessions({ year: 2026 }).catch(() => [])
+          const started = allSess.filter(s => new Date(s.date_start) < new Date())
+            .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+          sess = started[0] ?? null
+        }
+        if (!sess) { setError('No session data available yet for 2026.'); return }
 
         setSessionInfo(sess)
         const sk = sess.session_key

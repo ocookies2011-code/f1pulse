@@ -62,27 +62,33 @@ function dispatch() {
   if (running >= MAX_CONCURRENT || queue.length === 0) return
   const { url, headers, resolve, reject } = queue.shift()
   running++
+
+  const cleanup = () => { running--; setTimeout(dispatch, MIN_GAP_MS) }
+
   fetch(url, { headers })
     .then(async res => {
       if (res.status === 429) {
         // Back-off: re-queue after 2s
         await new Promise(r => setTimeout(r, 2000))
         queue.unshift({ url, headers, resolve, reject })
-        running--
-        setTimeout(dispatch, 100)
+        cleanup(); return
+      }
+      // 401/403 = auth issue - retry without auth for public historical endpoints
+      if ((res.status === 401 || res.status === 403) && headers.Authorization) {
+        cleanup()
+        fetch(url, {})
+          .then(async r2 => {
+            if (!r2.ok) { resolve([]); return }
+            resolve(await r2.json())
+          })
+          .catch(() => resolve([]))
         return
       }
-      // 401/403 = auth required for live data - return empty array gracefully
-      if (res.status === 401 || res.status === 403) { resolve([]); running--; setTimeout(dispatch, MIN_GAP_MS); return }
-      if (!res.ok) throw new Error(`OpenF1 ${res.status}: ${res.statusText}`)
-      const data = await res.json()
-      resolve(data)
+      if (!res.ok) { cleanup(); resolve([]); return }
+      resolve(await res.json())
+      cleanup()
     })
-    .catch(reject)
-    .finally(() => {
-      running--
-      setTimeout(dispatch, MIN_GAP_MS)
-    })
+    .catch(e => { cleanup(); reject(e) })
   setTimeout(dispatch, MIN_GAP_MS)
 }
 

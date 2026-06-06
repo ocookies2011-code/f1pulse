@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { UsersRound, Search, AlertCircle } from 'lucide-react'
-import { getBestStandingsSession, getDrivers, getChampionshipDrivers } from '../lib/openf1'
+import { getBestStandingsSession, getDrivers, getChampionshipDrivers, getSessions } from '../lib/openf1'
 import styles from './Drivers.module.css'
 
 const TEAM_SHORT = {
@@ -82,7 +82,15 @@ export default function Drivers() {
   useEffect(() => {
     async function load() {
       try {
-        const sess = await getBestStandingsSession(2026)
+        let sess = await getBestStandingsSession(2026)
+        // Fallback: use any recent started session
+        if (!sess) {
+          const allSess = await getSessions({ year: 2026 }).catch(() => [])
+          const started = allSess
+            .filter(s => new Date(s.date_start) < new Date())
+            .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+          sess = started[0] ?? null
+        }
         setSessionInfo(sess)
         const sk = sess?.session_key ?? 'latest'
 
