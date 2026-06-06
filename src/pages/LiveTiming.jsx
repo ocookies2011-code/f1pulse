@@ -591,33 +591,34 @@ export default function LiveTiming() {
             <div className={styles.emptyState}><AlertTriangle size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>{error}</p></div>
           ) : standings.length === 0 ? (
             <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
-          ) : (
-            <div className={styles.tableScroll}>
-              <table className={`${styles.table} ${compact?styles.compact:''}`}>
-                <colgroup>
-                  <col style={{width:28}}/>
-                  <col style={{width:34}}/>
-                  <col style={{width:120}}/>
-                  <col style={{width:72}}/>
-                  <col style={{width:52}}/>
-                  <col style={{width:72}}/>
-                  <col style={{width:68}}/>
-                  <col style={{width:72}}/>
-                  {isPremium && <col className={styles.hideMobile} style={{width:90}}/>}
-                  <col className={styles.hideMobile} style={{width:58}}/>
-                  <col className={styles.hideMobile} style={{width:58}}/>
-                  <col className={styles.hideMobile} style={{width:58}}/>
-                  {isPremium && <>
-                    <col className={styles.hideTablet} style={{width:58}}/>
-                    <col className={styles.hideTablet} style={{width:58}}/>
-                    <col className={styles.hideTablet} style={{width:58}}/>
-                    <col className={styles.hideTablet} style={{width:38}}/>
-                  </>}
-                  <col style={{width:34}}/>
-                </colgroup>
-                <thead className={styles.stickyHead}>
+          ) : (() => {
+            const COLS = (
+              <colgroup>
+                <col style={{width:28}}/>
+                <col style={{width:34}}/>
+                <col style={{width:120}}/>
+                <col style={{width:72}}/>
+                <col style={{width:52}}/>
+                <col style={{width:72}}/>
+                <col style={{width:68}}/>
+                <col style={{width:72}}/>
+                {isPremium && <col style={{width:90}}/>}
+                <col style={{width:58}}/>
+                <col style={{width:58}}/>
+                <col style={{width:58}}/>
+                {isPremium && <><col style={{width:58}}/><col style={{width:58}}/><col style={{width:58}}/><col style={{width:38}}/></>}
+                <col style={{width:34}}/>
+              </colgroup>
+            )
+            return (
+            <>
+            {/* Fixed header — overflow:hidden so no scrollbar, JS syncs scroll with body */}
+            <div className={styles.tableHead} id="lt-hdr">
+              <table className={styles.table} style={{tableLayout:'fixed'}}>
+                {COLS}
+                <thead>
                   <tr>
-                    <th>PIT</th>
+                    <th></th>
                     <th style={{textAlign:'center'}}>#</th>
                     <th>DRIVER</th>
                     <th>INTERVAL</th>
@@ -630,14 +631,23 @@ export default function LiveTiming() {
                     <th className={styles.hideMobile} style={{textAlign:'right',color:'#E8002D'}}>S2</th>
                     <th className={styles.hideMobile} style={{textAlign:'right',color:'#FF8000'}}>S3</th>
                     {isPremium && <>
-                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#3671C6',opacity:0.5}}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#E8002D',opacity:0.5}}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
-                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#FF8000',opacity:0.5}}>S3<sup style={{fontSize:'0.5em'}}>pb</sup></th>
+                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#3671C6',opacity:0.5}}>S1<sup>pb</sup></th>
+                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#E8002D',opacity:0.5}}>S2<sup>pb</sup></th>
+                      <th className={styles.hideTablet} style={{textAlign:'right',color:'#FF8000',opacity:0.5}}>S3<sup>pb</sup></th>
                       <th className={styles.hideTablet} style={{textAlign:'right',opacity:0.5}}>ST</th>
                     </>}
                     <th style={{textAlign:'right'}}>LAP</th>
                   </tr>
                 </thead>
+              </table>
+            </div>
+            {/* Scrollable body — when scrolled, syncs to header above */}
+            <div className={styles.tableScroll} onScroll={e => {
+              const h = document.getElementById('lt-hdr')
+              if (h) h.scrollLeft = e.currentTarget.scrollLeft
+            }}>
+              <table className={`${styles.table} ${compact?styles.compact:''}`} style={{tableLayout:'fixed'}}>
+                {COLS}
                 <tbody>
                   {standings.map((d, i) => {
                     const isP1  = i === 0
@@ -736,6 +746,9 @@ export default function LiveTiming() {
                 </tbody>
               </table>
             </div>
+            </>
+            )
+          })()}
           )}
         </div>
 
@@ -776,7 +789,7 @@ export default function LiveTiming() {
         </div>
 
         {/* Race Control */}
-        <div className={styles.champPanel} style={{flex:2}}>
+        <div className={styles.champPanel}>
           <div className={styles.champTitle}>RACE CONTROL</div>
           {rc.length === 0 ? (
             <div className={styles.champLoading}>No messages</div>
