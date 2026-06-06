@@ -123,7 +123,7 @@ function RightPanel({ session, standings, rc, isPremium }) {
             <button className={`${styles.mapToggle} ${showSectors?styles.mapToggleOn:''}`} onClick={()=>setShowSectors(v=>!v)}>Sectors</button>
             <button className={`${styles.mapToggle} ${showCorners?styles.mapToggleOn:''}`} onClick={()=>setShowCorners(v=>!v)}>Corners</button>
             <button className={`${styles.mapToggle} ${showDrs?styles.mapToggleOn:''}`} onClick={()=>setShowDrs(v=>!v)}>DRS</button>
-            <Link to="/trackmap" className={styles.mapFullLink}>Full map →</Link>
+            <span className={styles.mapSessionLabel}>{session?.circuit_short_name ?? session?.meeting_name?.split(' ')[0] ?? ''}</span>
           </div>
 
           {/* SVG Track Map */}
@@ -180,12 +180,12 @@ function RightPanel({ session, standings, rc, isPremium }) {
               if (!drv || !pos.x) return null
               const { x, y } = toSvg(pos)
               const col = `#${drv.team_colour ?? 'aaaaaa'}`
-              const pos_num = standings.find(s => s.driver_number === Number(dn))?.position
               return (
                 <g key={dn}>
-                  <circle cx={x} cy={y} r={8} fill={col} stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" />
-                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize="6.5" fontWeight="900" fontFamily="monospace">
-                    {drv.name_acronym}
+                  <circle cx={x} cy={y} r={9} fill={col} stroke="#000" strokeWidth={1.5} opacity={0.95} />
+                  <circle cx={x} cy={y} r={9} fill="none" stroke={col} strokeWidth={0.5} opacity={0.4} />
+                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize="6" fontWeight="900" fontFamily="monospace" style={{userSelect:'none'}}>
+                    {drv.name_acronym?.slice(0,3) ?? dn}
                   </text>
                 </g>
               )
@@ -196,6 +196,14 @@ function RightPanel({ session, standings, rc, isPremium }) {
           {Object.keys(positions).length === 0 && (
             <div className={styles.mapNoData}>Waiting for live position data…</div>
           )}
+          {/* Legend */}
+          <div className={styles.mapLegend}>
+            <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#3671C6'}}/> S1</div>
+            <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#E8002D'}}/> S2</div>
+            <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#FF8000'}}/> S3</div>
+            {showDrs && <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#39d98a'}}/> DRS</div>}
+            {Object.keys(positions).length > 0 && <div className={styles.mapLegendItem} style={{marginLeft:'auto',color:'rgba(255,255,255,0.4)'}}>{Object.keys(positions).length} cars live</div>}
+          </div>
         </div>
       )}
 

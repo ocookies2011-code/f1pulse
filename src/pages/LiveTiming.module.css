@@ -1,5 +1,5 @@
 /* ── Root ── */
-.root { padding-top: var(--nav-h); min-height: 100vh; display: flex; flex-direction: column; background: #0a0a0c; }
+.root { padding-top: var(--nav-h); height: 100vh; display: flex; flex-direction: column; background: #0a0a0c; overflow: hidden; }
 
 /* ── Top bar — ultra compact like formula-timer ── */
 .topBar {
@@ -52,6 +52,7 @@
 .mainRow {
   display: flex;
   flex: 1;
+  height: 0;
   min-height: 0;
   overflow: hidden;
 }
@@ -158,11 +159,12 @@
 
 /* ── Right panel ── */
 .rightPanel {
-  width: 420px;
+  width: clamp(340px, 38%, 520px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: #0c0c0f;
+  border-left: 1px solid rgba(255,255,255,0.07);
 }
 
 .rpTabs {
@@ -183,13 +185,16 @@
 .rpTabActive { color: #e10600; border-bottom-color: #e10600; background: rgba(225,6,0,0.04); }
 
 .rpMapWrap {
-  flex: 1; display: flex; flex-direction: column;
-  background: radial-gradient(ellipse at 45% 40%, #0a1020 0%, #050709 100%);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 45%, #090f1a 0%, #04060a 100%);
   overflow: hidden;
   position: relative;
   min-height: 0;
+  height: 0;
 }
-.rpMapSvg { flex: 1; width: 100%; height: 100%; display: block; min-height: 0; }
+.rpMapSvg { flex: 1; width: 100%; min-height: 0; display: block; }
 .rpMapLink {
   text-align: center; padding: 5px;
   font-size: 0.66rem; color: rgba(225,6,0,0.7);
@@ -261,8 +266,7 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1300px) { .rightPanel { width: 360px; } }
-@media (max-width: 1100px) { .rightPanel { width: 300px; } }
+@media (max-width: 1300px) { .rightPanel { width: clamp(300px, 36%, 420px); } }
 @media (max-width: 1000px) {
   .mainRow { flex-direction: column; }
   .tableCol { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
@@ -281,36 +285,52 @@
   display: flex; align-items: center; gap: 4px;
   padding: 5px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.02);
+  background: rgba(0,0,0,0.3);
   flex-shrink: 0;
 }
 .mapToggle {
   padding: 2px 8px;
-  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
-  color: rgba(255,255,255,0.28);
-  background: transparent; border: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  background: transparent; border: 1px solid rgba(255,255,255,0.08);
   border-radius: 3px; cursor: pointer; transition: all 0.1s;
 }
-.mapToggle:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.22); }
+.mapToggle:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.2); }
 .mapToggleOn {
-  color: rgba(255,255,255,0.85) !important;
-  background: rgba(255,255,255,0.08) !important;
-  border-color: rgba(255,255,255,0.25) !important;
+  color: rgba(255,255,255,0.9) !important;
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(255,255,255,0.2) !important;
 }
-.mapFullLink {
+.mapSessionLabel {
   margin-left: auto;
-  font-size: 0.63rem; font-weight: 600;
-  color: rgba(225,6,0,0.7);
-  transition: color 0.1s;
-  white-space: nowrap;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.2);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
 }
-.mapFullLink:hover { color: #e10600; }
+
+/* ── Map legend at bottom ── */
+.mapLegend {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 5px 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+.mapLegendItem {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.58rem; color: rgba(255,255,255,0.3); font-family: var(--font-mono);
+}
+.mapLegendLine {
+  width: 16px; height: 3px; border-radius: 2px;
+}
 
 /* ── No data notice overlaid at bottom of map ── */
 .mapNoData {
-  position: absolute; bottom: 8px; left: 0; right: 0;
+  position: absolute; bottom: 36px; left: 0; right: 0;
   text-align: center;
-  font-size: 0.65rem; color: rgba(255,255,255,0.18);
+  font-size: 0.65rem; color: rgba(255,255,255,0.15);
   font-family: var(--font-mono);
   pointer-events: none;
+  letter-spacing: 0.04em;
 }

@@ -13,7 +13,6 @@ const NAV = [
   { to: '/calendar',  label: 'Calendar',    icon: Calendar },
   { to: '/circuits',  label: 'Circuits',    icon: Map },
   { to: '/teams',     label: 'Teams',       icon: Users },
-  { to: '/trackmap',  label: 'Track Map',   icon: Navigation },
   { to: '/replay',    label: 'Replay',      icon: Film },
 ]
 
