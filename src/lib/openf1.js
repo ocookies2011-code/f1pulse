@@ -1,4 +1,8 @@
-const BASE = 'https://api.openf1.org/v1'
+// Use our Vercel proxy to avoid ad blocker interference with api.openf1.org
+// Falls back to direct if proxy fails
+const PROXY_BASE = '/api/openf1'
+const DIRECT_BASE = 'https://api.openf1.org/v1'
+const BASE = PROXY_BASE
 
 // ── Auth token ────────────────────────────────────────────────────────────────
 let _token = null
@@ -64,41 +68,38 @@ async function _fetchToken() {
 const _cache = new Map()
 
 async function apiFetch(endpoint, params = {}, ttlMs = 8000) {
-  const url = new URL(`${BASE}${endpoint}`)
-  Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') url.searchParams.set(k, String(v)) })
-  const key = url.toString()
+  const qs = Object.entries(params)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join('&')
+  const path = `${endpoint}${qs ? '?' + qs : ''}`
+  const key = path
 
   // Cache hit
   const hit = _cache.get(key)
   if (hit && Date.now() < hit.exp) return hit.data
 
-  const token = await getToken()
-  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+  // Try proxy first (avoids ad blocker blocking api.openf1.org)
+  const urls = [
+    `${PROXY_BASE}${path}`,
+    `${DIRECT_BASE}${path}`,
+  ]
 
-  try {
-    const r = await fetch(key, { headers, signal: AbortSignal.timeout(15000) })
-
-    // Auth error — retry without token (public historical data works without auth)
-    if ((r.status === 401 || r.status === 403) && token) {
-      try {
-        const r2 = await fetch(key, { signal: AbortSignal.timeout(15000) })
-        if (r2.ok) {
-          const data = await r2.json()
-          _cache.set(key, { data, exp: Date.now() + ttlMs })
-          return data
-        }
-      } catch {}
-      return []
-    }
-
-    if (!r.ok) return []
-    const data = await r.json()
-    _cache.set(key, { data, exp: Date.now() + ttlMs })
-    return data
-  } catch {
-    // Network error / extension block / CORS — return cached stale data or empty
-    return hit?.data ?? []
+  for (const url of urls) {
+    try {
+      const headers = url.startsWith(PROXY_BASE) ? {} : (await getToken() ? { Authorization: `Bearer ${await getToken()}` } : {})
+      const r = await fetch(url, { headers, signal: AbortSignal.timeout(15000) })
+      if (!r.ok) continue
+      const data = await r.json()
+      if (Array.isArray(data) || (data && typeof data === 'object')) {
+        _cache.set(key, { data, exp: Date.now() + ttlMs })
+        return data
+      }
+    } catch {}
   }
+
+  // Return stale cache if all fail
+  return hit?.data ?? []
 }
 
 // ── Endpoints ─────────────────────────────────────────────────────────────────
