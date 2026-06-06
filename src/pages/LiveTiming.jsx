@@ -24,7 +24,8 @@ function RightPanel({ session, standings, rc, isPremium }) {
   const pollRef = useRef(null)
 
   // Look up circuit data by session meeting name
-  const circuit = session ? getCircuitByName(session.meeting_name ?? '') : null
+  // OpenF1 /sessions has circuit_short_name, country_name but NOT meeting_name
+  const circuit = session ? getCircuitByName(session.circuit_short_name ?? session.country_name ?? session.meeting_name ?? '') : null
 
   // ── Fetch live car positions ──────────────────────────────────────────────
   const fetchPos = useCallback(async () => {
@@ -58,7 +59,9 @@ function RightPanel({ session, standings, rc, isPremium }) {
     if (!session?.session_key) return
     fetchPos()
     if (isPremium) fetchRadio()
-    pollRef.current = setInterval(() => { fetchPos(); if (isPremium) fetchRadio() }, 5000)
+    // Position data updates every ~2s on OpenF1 for live sessions
+    const posInterval = isPremium ? 2000 : 5000
+    pollRef.current = setInterval(() => { fetchPos(); if (isPremium) fetchRadio() }, posInterval)
     return () => clearInterval(pollRef.current)
   }, [session?.session_key, fetchPos, fetchRadio, isPremium])
 
@@ -361,7 +364,10 @@ export default function LiveTiming() {
 
   useEffect(() => {
     fetchLive(); fetchChamp()
-    const ms = isPremium ? 4000 : 10000
+    // OpenF1 rate limit: 30 req/10s. buildLiveStandings uses 6 endpoints.
+    // Premium authenticated: poll every 3s (6 req / 3s = within limit)
+    // Free unauthenticated: poll every 8s
+    const ms = isPremium ? 3000 : 8000
     intervalRef.current = setInterval(fetchLive, ms)
     return () => clearInterval(intervalRef.current)
   }, [isPremium, fetchLive, fetchChamp])
@@ -416,7 +422,7 @@ export default function LiveTiming() {
           <div className={styles.toggleGroup}>
             <button className={`${styles.toggle} ${compact?styles.toggleOn:''}`} onClick={()=>setCompact(v=>!v)}>Compact</button>
           </div>
-          <span className={styles.refreshNote}>{isPremium ? '⚡ ~4s · ±0.001s precision' : '~10s refresh · ±0.001s precision'}</span>
+          <span className={styles.refreshNote}>{isPremium ? '⚡ ~3s live · positions 2s' : '~8s refresh · Go Pro for faster'}</span>
         </div>
       </div>
 
@@ -445,8 +451,12 @@ export default function LiveTiming() {
                     <th className={styles.thNum}>LEADER</th>
                     <th className={styles.thNum}>LAST LAP</th>
                     <th className={styles.thMini}>MINI SECTORS</th>
-                    <th className={styles.thSec}>LAST SECTORS</th>
-                    <th className={styles.thSec}>BEST SECTORS</th>
+                    <th className={`${styles.thS1}`}><span style={{color:'#3671C6'}}>S1</span></th>
+                    <th className={`${styles.thS2}`}><span style={{color:'#E8002D'}}>S2</span></th>
+                    <th className={`${styles.thS3}`}><span style={{color:'#FF8000'}}>S3</span></th>
+                    <th className={`${styles.thS1} ${styles.thBest}`}><span style={{color:'#3671C6',opacity:0.6}}>S1</span><span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',marginLeft:2}}>PB</span></th>
+                    <th className={`${styles.thS2} ${styles.thBest}`}><span style={{color:'#E8002D',opacity:0.6}}>S2</span><span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',marginLeft:2}}>PB</span></th>
+                    <th className={`${styles.thS3} ${styles.thBest}`}><span style={{color:'#FF8000',opacity:0.6}}>S3</span><span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',marginLeft:2}}>PB</span></th>
                     <th className={styles.thLap}>LAP</th>
                   </tr>
                 </thead>
@@ -504,35 +514,37 @@ export default function LiveTiming() {
                           }
                         </td>
 
-                        {/* Last sectors */}
-                        <td className={styles.tdSec}>
-                          {d.sectors?.some(Boolean) ? (
-                            <span className={styles.secRow}>
-                              {[0,1,2].map(si => {
-                                const isSB = d.sectors[si] && d.best_sectors[si] && Math.abs(d.sectors[si]-d.best_sectors[si]) < 0.001
-                                const isPB = d.sectors[si] && d.sectors[si] === Math.min(...standings.map(x=>x.sectors[si]).filter(Boolean))
-                                return (
-                                  <span key={si} className={`mono ${styles.sec} ${isSB?styles.purple:isPB?styles.green:d.sectors[si]?styles.yellow:styles.dimTime}`}>
-                                    {d.sectors[si]?d.sectors[si].toFixed(3):'——'}
+                        {/* Last sectors — S1, S2, S3 as individual cells */}
+                        {[0,1,2].map(si => {
+                          const SCOL = ['#3671C6','#E8002D','#FF8000'][si]
+                          const val = d.sectors?.[si]
+                          const isSB = val && d.best_sectors?.[si] && Math.abs(val - d.best_sectors[si]) < 0.001
+                          const isSessionBest = val && val === Math.min(...standings.map(x=>x.sectors?.[si]).filter(Boolean))
+                          return (
+                            <td key={`ls${si}`} className={`mono ${styles.tdSecCell}`}>
+                              {val
+                                ? <span style={{color: isSB ? '#b45cf4' : isSessionBest ? '#39d98a' : SCOL, fontWeight: isSB||isSessionBest ? 800 : 400, opacity: isSB||isSessionBest ? 1 : 0.8}}>
+                                    {val.toFixed(3)}
                                   </span>
-                                )
-                              })}
-                            </span>
-                          ) : <span className={styles.dash}>—</span>}
-                        </td>
+                                : <span className={styles.dash}>—</span>
+                              }
+                            </td>
+                          )
+                        })}
 
-                        {/* Best sectors */}
-                        <td className={styles.tdSec}>
-                          {d.best_sectors?.some(Boolean) ? (
-                            <span className={styles.secRow}>
-                              {[0,1,2].map(si => (
-                                <span key={si} className={`mono ${styles.sec} ${d.best_sectors[si]?styles.purple:styles.dimTime}`}>
-                                  {d.best_sectors[si]?d.best_sectors[si].toFixed(3):'——'}
-                                </span>
-                              ))}
-                            </span>
-                          ) : <span className={styles.dash}>—</span>}
-                        </td>
+                        {/* Best sectors — S1, S2, S3 as individual cells */}
+                        {[0,1,2].map(si => {
+                          const SCOL = ['#3671C6','#E8002D','#FF8000'][si]
+                          const val = d.best_sectors?.[si]
+                          return (
+                            <td key={`bs${si}`} className={`mono ${styles.tdSecCell} ${styles.tdSecBest}`}>
+                              {val
+                                ? <span style={{color: '#b45cf4', opacity: 0.75}}>{val.toFixed(3)}</span>
+                                : <span className={styles.dash}>—</span>
+                              }
+                            </td>
+                          )
+                        })}
 
                         <td className={`mono ${styles.tdLap}`}>{d.lap_number||'—'}</td>
                       </tr>

@@ -73,7 +73,7 @@ async function get(endpoint, params = {}) {
 
 // ── Simple in-memory response cache ───────────────────────────────────────────
 const cache    = new Map()
-const CACHE_MS = 8000  // 8s for live data; longer for static
+const CACHE_MS = 3000  // 3s for live data; longer for static
 
 async function getCached(endpoint, params, ttl = CACHE_MS) {
   const key = endpoint + JSON.stringify(params)

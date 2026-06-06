@@ -305,6 +305,7 @@ export const CIRCUITS = {
 // OpenF1 returns various formats: "Monaco Grand Prix", "Grand Prix de Monaco",
 // "Formula 1 Grand Prix De Monaco 2026" etc.
 const MEETING_MAP = {
+  // circuit_short_name values (exact matches from OpenF1)
   'monaco': 'Monaco', 'monte carlo': 'Monaco', 'monte-carlo': 'Monaco',
   'albert park': 'Albert Park', 'australian': 'Albert Park', 'melbourne': 'Albert Park',
   'suzuka': 'Suzuka', 'japanese': 'Suzuka',
@@ -327,6 +328,10 @@ const MEETING_MAP = {
   'las vegas': 'Las Vegas',
   'lusail': 'Lusail', 'losail': 'Lusail', 'qatar': 'Lusail',
   'yas marina': 'Yas Marina', 'abu dhabi': 'Yas Marina',
+  // country_name fallbacks
+  'united arab emirates': 'Yas Marina',
+  'great britain': 'Silverstone',
+  'united states': 'Austin',
   'barcelona': 'Catalunya', 'catalan': 'Catalunya', 'spain': 'Catalunya', 'spanish': 'Catalunya', 'catalunya': 'Catalunya',
   'shanghai': 'Shanghai', 'chinese': 'Shanghai',
 }

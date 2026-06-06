@@ -88,6 +88,17 @@
 .thTyre { width: 58px; }
 .thMini { width: 100px; }
 .thSec  { width: 145px; }
+/* Individual sector columns */
+.thS1 { width: 56px; text-align: right !important; padding-right: 6px !important; }
+.thS2 { width: 56px; text-align: right !important; padding-right: 6px !important; }
+.thS3 { width: 56px; text-align: right !important; padding-right: 10px !important; }
+.thBest { opacity: 0.55; }
+.tdSecCell { 
+  width: 56px; text-align: right; padding-right: 6px !important;
+  font-size: 0.75rem; letter-spacing: -0.02em;
+  border-right: 1px solid rgba(255,255,255,0.03) !important;
+}
+.tdSecBest { opacity: 0.7; padding-right: 10px !important; }
 .thLap  { width: 38px; text-align: right !important; padding-right: 8px !important; }
 
 /* ── Rows — formula-timer style alternating ── */
@@ -148,6 +159,7 @@
 .tdSec { vertical-align: middle; }
 .secRow { display: flex; gap: 6px; }
 .sec { font-size: 0.7rem; letter-spacing: -0.01em; font-family: var(--font-mono); }
+.tdSecCell { vertical-align: middle; }
 
 .tdLap { color: rgba(255,255,255,0.3); font-size: 0.73rem; text-align: right; padding-right: 8px !important; font-family: var(--font-mono); }
 
