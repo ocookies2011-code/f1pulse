@@ -446,6 +446,7 @@ export default function LiveTiming() {
 
   const fetchLive = useCallback(async () => {
     if (!mountedRef.current) return
+    // Only show loading spinner on first load (no existing standings)
     try {
       // Step 1: Get session (fast - cached after first call)
       const sess = await getLatestSession()
@@ -497,7 +498,7 @@ export default function LiveTiming() {
       setLastUpdate(new Date())
       setError(null)
     } catch { if (mountedRef.current) setError('Could not load timing data') }
-    finally { if (mountedRef.current) setLoading(false) }
+    finally { if (mountedRef.current) { setLoading(false) } }
   }, [])
 
   const fetchChamp = useCallback(async () => {
@@ -628,8 +629,10 @@ export default function LiveTiming() {
           ) : standings.length === 0 ? (
             <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
           ) : (
-            <div className={styles.tableScroll}>
-              <table className={`${styles.table} ${compact?styles.compact:''}`}>
+            <>
+            {/* Fixed header — outside scroll so always visible */}
+            <div className={styles.tableHeader}>
+              <table className={styles.table} style={{tableLayout:'fixed'}}>
                 <thead>
                   <tr className={styles.theadRow}>
                     <th style={{width:28}}>PIT</th>
@@ -643,7 +646,7 @@ export default function LiveTiming() {
                     {isPremium && <th style={{width:90}} className={styles.hideMobile}>MINI SECTORS</th>}
                     <th style={{width:58,textAlign:'right',color:'#3671C6'}} className={styles.hideMobile}>S1</th>
                     <th style={{width:58,textAlign:'right',color:'#E8002D'}} className={styles.hideMobile}>S2</th>
-                    <th style={{width:58,textAlign:'right',color:'#FF8000',borderRight:'1px solid rgba(255,255,255,0.08)'}} className={styles.hideMobile}>S3</th>
+                    <th style={{width:58,textAlign:'right',color:'#FF8000'}} className={styles.hideMobile}>S3</th>
                     {isPremium && <>
                       <th style={{width:58,textAlign:'right',color:'#3671C6',opacity:0.5}} className={styles.hideTablet}>S1<sup style={{fontSize:'0.5em'}}>pb</sup></th>
                       <th style={{width:58,textAlign:'right',color:'#E8002D',opacity:0.5}} className={styles.hideTablet}>S2<sup style={{fontSize:'0.5em'}}>pb</sup></th>
@@ -653,6 +656,11 @@ export default function LiveTiming() {
                     <th style={{width:34,textAlign:'right'}}>LAP</th>
                   </tr>
                 </thead>
+              </table>
+            </div>
+            {/* Scrollable body */}
+            <div className={styles.tableScroll}>
+              <table className={`${styles.table} ${compact?styles.compact:''}`} style={{tableLayout:'fixed'}}>
                 <tbody>
                   {standings.map((d, i) => {
                     const isP1  = i === 0
@@ -751,13 +759,13 @@ export default function LiveTiming() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
 
         {/* Right panel: track map / team radio / race control */}
-        {!loading && (
-          <RightPanel session={session} standings={standings} rc={rc} isPremium={isPremium} />
-        )}
+        {/* Always render RightPanel so tab state persists across refreshes */}
+        <RightPanel session={session} standings={standings} rc={rc} isPremium={isPremium} />
       </div>
 
       {/* ── Bottom panels ── */}
