@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio } from 'lucide-react'
-import { getCircuitByName } from '../lib/circuitData2'
 import {
   buildLiveStandings, buildHistoricalStandings, getLatestSession, getWeather, getRaceControl,
   getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
@@ -13,19 +12,27 @@ import styles from './LiveTiming.module.css'
 const TYRE_COLOURS = { SOFT:'#e10600', MEDIUM:'#f5a623', HARD:'#d8d8d8', INTERMEDIATE:'#39a847', WET:'#0067ff' }
 const TYRE_LABELS  = { SOFT:'S', MEDIUM:'M', HARD:'H', INTERMEDIATE:'I', WET:'W' }
 
+
+const CIRCUIT_SLUGS = {
+  'Monaco':'monaco','Silverstone':'silverstone','Monza':'monza','Spa':'spa',
+  'Suzuka':'suzuka','Albert Park':'albert_park','Sakhir':'bahrain','Jeddah':'jeddah',
+  'Miami':'miami','Imola':'imola','Barcelona':'barcelona','Budapest':'budapest',
+  'Zandvoort':'zandvoort','Baku':'baku','Singapore':'singapore','Austin':'austin',
+  'Mexico City':'mexico','Spielberg':'spielberg','Yas Marina':'yas_marina',
+  'Las Vegas':'las_vegas','Lusail':'losail','São Paulo':'sao_paulo','Montréal':'villeneuve',
+  'Shanghai':'shanghai',
+}
+function getCircuitSlug(shortName) {
+  if (!shortName) return null
+  return CIRCUIT_SLUGS[shortName] ?? shortName.toLowerCase().replace(/[^a-z0-9]/g,'_')
+}
+
 // ── Right panel: full track map with toggles + team radio + race control ──────
 function RightPanel({ session, standings, rc, isPremium }) {
   const [tab, setTab] = useState('map')
   const [positions, setPositions] = useState({})
   const [radio, setRadio] = useState([])
-  const [showCorners, setShowCorners] = useState(true)
-  const [showSectors, setShowSectors] = useState(true)
-  const [showDrs, setShowDrs]     = useState(true)
   const pollRef = useRef(null)
-
-  // Look up circuit data by session meeting name
-  // OpenF1 /sessions has circuit_short_name, country_name but NOT meeting_name
-  const circuit = session ? getCircuitByName(session.circuit_short_name ?? session.country_name ?? session.meeting_name ?? '') : null
 
   // ── Fetch live car positions ──────────────────────────────────────────────
   const fetchPos = useCallback(async () => {
@@ -68,40 +75,6 @@ function RightPanel({ session, standings, rc, isPremium }) {
   const drvMap = {}
   for (const d of standings) drvMap[d.driver_number] = d
 
-  // ── Map live OpenF1 x/y coords → circuit SVG space ───────────────────────
-  const pts = Object.values(positions).filter(p => p.x && p.y)
-  let toSvg = null
-  let svgViewBox = circuit?.viewBox ?? '0 0 400 300'
-
-  if (circuit && pts.length >= 3) {
-    const [vx, vy, vw, vh] = circuit.viewBox.split(' ').map(Number)
-    const xs = pts.map(p => p.x), ys = pts.map(p => p.y)
-    const xMin = Math.min(...xs), xMax = Math.max(...xs)
-    const yMin = Math.min(...ys), yMax = Math.max(...ys)
-    toSvg = p => ({
-      x: vx + ((p.x - xMin) / (xMax - xMin || 1)) * vw,
-      y: vy + (1 - (p.y - yMin) / (yMax - yMin || 1)) * vh,
-    })
-  } else if (!circuit && pts.length >= 3) {
-    svgViewBox = '0 0 400 300'
-    const xs = pts.map(p => p.x), ys = pts.map(p => p.y)
-    const xMin = Math.min(...xs), xMax = Math.max(...xs)
-    const yMin = Math.min(...ys), yMax = Math.max(...ys)
-    toSvg = p => ({
-      x: 20 + ((p.x - xMin) / (xMax - xMin || 1)) * 360,
-      y: 20 + (1 - (p.y - yMin) / (yMax - yMin || 1)) * 260,
-    })
-  }
-
-  // ── Sector polylines (drawn on top of base path) ──────────────────────────
-  const sectorPaths = circuit?.sectors?.map(sec => {
-    // Build an SVG path from the sector's keypoints string
-    const coords = sec.points.split(' ').map(pt => {
-      const [x, y] = pt.split(',').map(Number)
-      return `${x},${y}`
-    })
-    return { ...sec, d: 'M ' + coords.join(' L ') }
-  }) ?? []
 
   return (
     <div className={styles.rightPanel}>
@@ -119,114 +92,96 @@ function RightPanel({ session, standings, rc, isPremium }) {
       </div>
 
       {/* ── Track Map tab ── */}
-      {tab === 'map' && (
-        <div className={styles.rpMapWrap}>
-          {/* Toggle controls */}
-          <div className={styles.mapToggles}>
-            <button className={`${styles.mapToggle} ${showSectors?styles.mapToggleOn:''}`} onClick={()=>setShowSectors(v=>!v)}>Sectors</button>
-            <button className={`${styles.mapToggle} ${showCorners?styles.mapToggleOn:''}`} onClick={()=>setShowCorners(v=>!v)}>Corners</button>
-            <button className={`${styles.mapToggle} ${showDrs?styles.mapToggleOn:''}`} onClick={()=>setShowDrs(v=>!v)}>DRS</button>
-            <span className={styles.mapSessionLabel}>{session?.circuit_short_name ?? session?.meeting_name?.split(' ')[0] ?? ''}</span>
-          </div>
-
-          {/* Background circuit image from formula-timer for accurate shape */}
-          {session?.circuit_short_name && (
-            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none',zIndex:0}}>
-              <img
-                src={`https://formula-timer.com/circuits/${
-                  ({'Monaco':'monaco','Silverstone':'silverstone','Monza':'monza','Spa':'spa','Suzuka':'suzuka','Albert Park':'albert_park','Sakhir':'bahrain','Jeddah':'jeddah','Miami':'miami','Imola':'imola','Barcelona':'barcelona','Budapest':'budapest','Zandvoort':'zandvoort','Baku':'baku','Singapore':'singapore','Austin':'austin','Mexico City':'mexico','Spielberg':'spielberg','Yas Marina':'yas_marina','Las Vegas':'las_vegas','Lusail':'losail','São Paulo':'sao_paulo','Montréal':'villeneuve'}[session.circuit_short_name] ?? session.circuit_short_name.toLowerCase().replace(/ /g,'_'))
-                }.png`}
-                alt=""
-                style={{
-                  width:'100%', height:'100%',
-                  objectFit:'contain', objectPosition:'center',
-                  opacity: 0.55,
-                  padding: '8px',
-                }}
-                onError={e => e.target.style.display='none'}
-              />
+      {tab === 'map' && (() => {
+        const slug = getCircuitSlug(session?.circuit_short_name)
+        const imgUrl = slug ? `https://formula-timer.com/circuits/${slug}.png` : null
+        // Normalize positions to 0-100% for CSS overlay
+        const pts = Object.values(positions).filter(p => p.x && p.y)
+        let normPos = {}
+        if (pts.length >= 3) {
+          const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y)
+          const xMin=Math.min(...xs), xMax=Math.max(...xs)
+          const yMin=Math.min(...ys), yMax=Math.max(...ys)
+          for (const [dn, pos] of Object.entries(positions)) {
+            if (!pos.x || !pos.y) continue
+            normPos[dn] = {
+              left: `${((pos.x - xMin) / (xMax - xMin || 1)) * 86 + 7}%`,
+              top:  `${(1 - (pos.y - yMin) / (yMax - yMin || 1)) * 86 + 7}%`,
+            }
+          }
+        }
+        return (
+          <div className={styles.rpMapWrap}>
+            {/* Controls */}
+            <div className={styles.mapToggles}>
+              <span className={styles.mapSessionLabel} style={{marginRight:'auto'}}>{session?.circuit_short_name ?? ''}</span>
+              {Object.keys(positions).length > 0 && <span style={{fontSize:'0.6rem',color:'rgba(255,255,255,0.35)',fontFamily:'var(--font-mono)'}}>{Object.keys(positions).length} cars live</span>}
             </div>
-          )}
-          {/* SVG overlay for sectors, corners, DRS and car dots */}
-          <svg viewBox={svgViewBox} xmlns="http://www.w3.org/2000/svg" className={styles.rpMapSvg} preserveAspectRatio="xMidYMid meet" style={{position:'relative',zIndex:1}}>
-            {circuit ? (
-              <>
-                {/* Base track — thick grey (subtle since bg image shows shape) */}
-                <path d={circuit.path} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Sector-coloured overlay lines */}
-                {showSectors && sectorPaths.map(sec => (
-                  <path key={sec.id} d={sec.d} fill="none" stroke={sec.color} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
-                ))}
-                {/* White centre line when sectors off */}
-                {!showSectors && (
-                  <path d={circuit.path} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                )}
-                {/* Start/finish line */}
-                {circuit.startLine && (
-                  <line
-                    x1={circuit.startLine.x - 8} y1={circuit.startLine.y}
-                    x2={circuit.startLine.x + 8} y2={circuit.startLine.y}
-                    stroke="#fff" strokeWidth="3" strokeLinecap="round"
-                  />
-                )}
-                {/* DRS zones */}
-                {showDrs && circuit.drs?.map((d, i) => (
-                  <g key={i}>
-                    <line x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2} stroke="#39d98a" strokeWidth="7" strokeLinecap="round" opacity="0.9" />
-                    <text x={(d.x1+d.x2)/2} y={(d.y1+d.y2)/2-6} textAnchor="middle" fill="#39d98a" fontSize="7" fontWeight="700" fontFamily="monospace" opacity="0.85">DRS</text>
-                  </g>
-                ))}
-                {/* Corner numbers */}
-                {showCorners && circuit.corners?.map(c => (
-                  <g key={c.n}>
-                    <circle cx={c.x} cy={c.y} r="8" fill="rgba(0,0,0,0.75)" stroke="rgba(255,255,255,0.25)" strokeWidth="0.8" />
-                    <text x={c.x} y={c.y+0.5} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.85)" fontSize="6.5" fontWeight="700" fontFamily="monospace">{c.n}</text>
-                  </g>
-                ))}
-                {/* Sector labels */}
-                {showSectors && circuit.sectors?.map(sec => (
-                  <text key={sec.id} x={sec.midX} y={sec.midY} textAnchor="middle" fill={sec.color} fontSize="9" fontWeight="800" fontFamily="monospace" opacity="0.7">{sec.label}</text>
-                ))}
-              </>
-            ) : (
-              /* No circuit data — show "waiting" message */
-              <text x="50%" y="50%" textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="12" fontFamily="monospace" dominantBaseline="middle">
-                No circuit data
-              </text>
-            )}
 
-            {/* ── Live car position dots ── */}
-            {toSvg && Object.entries(positions).map(([dn, pos]) => {
-              const drv = drvMap[Number(dn)]
-              if (!drv || !pos.x) return null
-              const { x, y } = toSvg(pos)
-              const col = `#${drv.team_colour ?? 'aaaaaa'}`
-              return (
-                <g key={dn}>
-                  <circle cx={x} cy={y} r={9} fill={col} stroke="#000" strokeWidth={1.5} opacity={0.95} />
-                  <circle cx={x} cy={y} r={9} fill="none" stroke={col} strokeWidth={0.5} opacity={0.4} />
-                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize="6" fontWeight="900" fontFamily="monospace" style={{userSelect:'none'}}>
-                    {drv.name_acronym?.slice(0,3) ?? dn}
-                  </text>
-                </g>
-              )
-            })}
-          </svg>
+            {/* Map area — circuit image + car dot overlay */}
+            <div style={{flex:1,position:'relative',minHeight:0,overflow:'hidden'}}>
+              {/* Circuit image — the actual accurate track map */}
+              {imgUrl && (
+                <img
+                  src={imgUrl}
+                  alt={session?.circuit_short_name}
+                  style={{
+                    position:'absolute', inset:0,
+                    width:'100%', height:'100%',
+                    objectFit:'contain', objectPosition:'center',
+                    padding:'12px',
+                  }}
+                  onError={e => e.target.style.display='none'}
+                />
+              )}
 
-          {/* No position data notice */}
-          {Object.keys(positions).length === 0 && (
-            <div className={styles.mapNoData}>Waiting for live position data…</div>
-          )}
-          {/* Legend */}
-          <div className={styles.mapLegend}>
-            <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#3671C6'}}/> S1</div>
-            <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#E8002D'}}/> S2</div>
-            <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#FF8000'}}/> S3</div>
-            {showDrs && <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#39d98a'}}/> DRS</div>}
-            {Object.keys(positions).length > 0 && <div className={styles.mapLegendItem} style={{marginLeft:'auto',color:'rgba(255,255,255,0.4)'}}>{Object.keys(positions).length} cars live</div>}
+              {/* Car position dots overlaid with CSS % */}
+              {Object.entries(normPos).map(([dn, pos]) => {
+                const drv = drvMap[Number(dn)]
+                if (!drv) return null
+                const col = `#${drv.team_colour ?? 'aaaaaa'}`
+                return (
+                  <div key={dn} style={{
+                    position:'absolute',
+                    left: pos.left, top: pos.top,
+                    transform:'translate(-50%,-50%)',
+                    zIndex:10,
+                  }}>
+                    <div style={{
+                      width:22, height:22, borderRadius:'50%',
+                      background:col, border:'2px solid #000',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:'7px', fontWeight:900, color:'#fff',
+                      fontFamily:'monospace', boxShadow:`0 0 6px ${col}88`,
+                      userSelect:'none',
+                    }}>
+                      {drv.name_acronym?.slice(0,3)}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* No data overlay */}
+              {!imgUrl && Object.keys(normPos).length === 0 && (
+                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.15)',fontSize:'0.75rem',fontFamily:'monospace'}}>
+                  No circuit data
+                </div>
+              )}
+              {imgUrl && Object.keys(positions).length === 0 && (
+                <div className={styles.mapNoData}>Waiting for live position data…</div>
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className={styles.mapLegend}>
+              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#3671C6'}}/> S1</div>
+              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#E8002D'}}/> S2</div>
+              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#FF8000'}}/> S3</div>
+              <div className={styles.mapLegendItem}><div className={styles.mapLegendLine} style={{background:'#39d98a'}}/> DRS</div>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── Team Radio tab ── */}
       {tab === 'radio' && (
