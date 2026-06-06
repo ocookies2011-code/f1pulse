@@ -85,16 +85,11 @@
   padding: 7px 7px 6px;
   text-align: left;
   font-size: 0.63rem; font-weight: 800; letter-spacing: 0.07em;
-  color: rgba(255,255,255,0.65) !important;
+  color: rgba(255,255,255,0.65);
   text-transform: uppercase;
   border-right: 1px solid rgba(255,255,255,0.06);
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #111116 !important;
+  background: #111116;
   white-space: nowrap;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.1);
 }
 .table thead th:last-child { border-right: none; }
 
@@ -527,17 +522,21 @@
   border-collapse: collapse;
   width: 100%;
 }
-.tableHead th {
-  padding: 8px 7px 7px;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.88);
+.tableHead th,
+.tableHead .table thead th {
+  padding: 9px 7px 8px !important;
+  font-size: 0.64rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,0.9) !important;
   text-align: left;
-  white-space: nowrap;
-  border-bottom: 2px solid rgba(255,255,255,0.15);
-  border-right: 1px solid rgba(255,255,255,0.07);
-  background: #13131a;
+  white-space: nowrap !important;
+  border-bottom: 2px solid rgba(255,255,255,0.18) !important;
+  border-right: 1px solid rgba(255,255,255,0.07) !important;
+  background: #13131a !important;
+  position: static !important; /* OVERRIDE any sticky - header div is fixed, not sticky */
+  box-shadow: none !important;
 }
-.tableHead th:last-child { border-right: none; }
+.tableHead th:last-child,
+.tableHead .table thead th:last-child { border-right: none !important; }
