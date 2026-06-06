@@ -1,42 +1,60 @@
-// Official F1 circuit map images from media.formula1.com (Cloudinary CDN)
-// These load correctly in browser img tags
-const F1_CDN = 'https://media.formula1.com/image/upload/f_auto/q_auto/v0/fom-website/2018-redesign-assets/Circuit%20maps%2016x9'
+// Circuit track outlines as inline SVG — rendered as dark-themed maps
+// Each circuit uses the same path data as the LiveTiming track map
 
-export const CIRCUIT_IMAGES = {
-  'Albert Park':   `${F1_CDN}/Australia_Circuit.png`,
-  'Shanghai':      `${F1_CDN}/China_Circuit.png`,
-  'Suzuka':        `${F1_CDN}/Japan_Circuit.png`,
-  'Sakhir':        `${F1_CDN}/Bahrain_Circuit.png`,
-  'Jeddah':        `${F1_CDN}/Saudi_Arabia_Circuit.png`,
-  'Miami Gardens': `${F1_CDN}/Miami_Circuit.png`,
-  'Imola':         `${F1_CDN}/Emilia_Romagna_Circuit.png`,
-  'Monaco':        `${F1_CDN}/Monaco_Circuit.png`,
-  'Montréal':      `${F1_CDN}/Canada_Circuit.png`,
-  'Spielberg':     `${F1_CDN}/Austria_Circuit.png`,
-  'Silverstone':   `${F1_CDN}/Great_Britain_Circuit.png`,
-  'Budapest':      `${F1_CDN}/Hungary_Circuit.png`,
-  'Spa':           `${F1_CDN}/Belgium_Circuit.png`,
-  'Zandvoort':     `${F1_CDN}/Netherlands_Circuit.png`,
-  'Monza':         `${F1_CDN}/Italy_Circuit.png`,
-  'Baku':          `${F1_CDN}/Azerbaijan_Circuit.png`,
-  'Singapore':     `${F1_CDN}/Singapore_Circuit.png`,
-  'Austin':        `${F1_CDN}/USA_Circuit.png`,
-  'Mexico City':   `${F1_CDN}/Mexico_Circuit.png`,
-  'São Paulo':     `${F1_CDN}/Brazil_Circuit.png`,
-  'Las Vegas':     `${F1_CDN}/Las_Vegas_Circuit.png`,
-  'Lusail':        `${F1_CDN}/Qatar_Circuit.png`,
-  'Yas Marina':    `${F1_CDN}/Abu_Dhabi_Circuit.png`,
-  'Barcelona':     `${F1_CDN}/Spain_Circuit.png`,
+const BG = '#0a0d15'
+const TRACK = 'rgba(255,255,255,0.55)'
+const TRACK_WIDE = 'rgba(255,255,255,0.1)'
+const RED = '#e10600'
+
+function makeSvg(viewBox, path, extras = '') {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    `<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" style="background:${BG}">
+      <path d="${path}" fill="none" stroke="${TRACK_WIDE}" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${path}" fill="none" stroke="${TRACK}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${extras}
+    </svg>`
+  )}`
+}
+
+const SF = (x, y) => `<circle cx="${x}" cy="${y}" r="6" fill="${RED}"/>`
+
+const CIRCUITS = {
+  'Albert Park':  { vb:'230 80 550 390',  path:'M 500 100 L 650 95 L 720 120 L 750 160 L 740 200 L 700 230 L 660 240 L 640 270 L 650 310 L 680 340 L 700 380 L 680 420 L 640 440 L 580 450 L 520 445 L 470 430 L 430 400 L 380 390 L 340 410 L 310 440 L 280 430 L 260 400 L 270 360 L 300 330 L 330 300 L 320 260 L 290 230 L 280 190 L 300 150 L 340 120 L 400 100 L 500 100 Z', sf:[500,100] },
+  'Shanghai':     { vb:'200 80 600 420',  path:'M 480 120 L 620 105 L 710 130 L 750 175 L 745 235 L 710 285 L 670 325 L 645 375 L 660 425 L 680 470 L 655 505 L 600 515 L 535 498 L 490 462 L 455 420 L 415 408 L 365 418 L 315 400 L 278 362 L 270 315 L 290 268 L 320 240 L 335 195 L 315 160 L 335 132 L 380 115 L 480 120 Z', sf:[480,120] },
+  'Suzuka':       { vb:'260 100 480 410', path:'M 500 120 L 600 110 L 680 140 L 720 190 L 710 250 L 670 300 L 640 350 L 660 400 L 690 440 L 670 480 L 620 490 L 560 470 L 520 440 L 480 400 L 450 360 L 420 380 L 400 420 L 370 440 L 330 430 L 300 400 L 290 350 L 310 300 L 350 270 L 390 240 L 400 200 L 380 160 L 400 130 L 440 115 L 500 120 Z', sf:[500,120] },
+  'Sakhir':       { vb:'210 170 490 370', path:'M 300 200 L 500 185 L 600 200 L 670 240 L 680 300 L 650 350 L 600 380 L 560 400 L 540 440 L 550 480 L 520 510 L 470 515 L 420 500 L 380 470 L 360 430 L 340 390 L 300 370 L 260 350 L 240 310 L 255 265 L 280 230 L 300 200 Z', sf:[300,200] },
+  'Jeddah':       { vb:'250 80 520 460',  path:'M 400 100 L 550 90 L 650 110 L 720 150 L 740 210 L 720 270 L 680 310 L 650 360 L 660 410 L 680 460 L 660 500 L 620 520 L 570 510 L 530 480 L 500 440 L 470 400 L 430 380 L 380 390 L 330 380 L 290 350 L 270 310 L 280 270 L 310 240 L 330 200 L 320 160 L 340 130 L 370 110 L 400 100 Z', sf:[400,100] },
+  'Miami Gardens':{ vb:'220 150 510 400', path:'M 350 180 L 500 160 L 600 170 L 670 200 L 700 250 L 690 310 L 650 350 L 600 370 L 560 400 L 550 450 L 570 490 L 550 520 L 500 530 L 440 515 L 400 480 L 370 440 L 340 400 L 300 390 L 260 370 L 240 330 L 250 290 L 280 260 L 300 230 L 290 200 L 310 175 L 350 180 Z', sf:[350,180] },
+  'Imola':        { vb:'250 130 420 400', path:'M 350 160 L 480 140 L 570 160 L 630 200 L 650 260 L 630 320 L 590 360 L 560 410 L 570 460 L 550 500 L 500 510 L 450 495 L 410 460 L 390 420 L 360 400 L 320 390 L 280 360 L 270 310 L 290 265 L 320 230 L 330 195 L 350 160 Z', sf:[350,160] },
+  'Monaco':       { vb:'280 60 420 420',  path:'M 480 80 L 520 75 L 600 90 L 650 120 L 660 160 L 640 200 L 600 220 L 560 230 L 530 250 L 520 290 L 530 330 L 550 360 L 560 400 L 540 430 L 500 450 L 450 460 L 400 450 L 360 430 L 340 400 L 330 360 L 340 320 L 360 290 L 380 260 L 390 230 L 380 200 L 360 180 L 340 160 L 330 130 L 340 100 L 370 80 L 420 72 L 480 80 Z', sf:[482,79] },
+  'Montréal':     { vb:'240 100 480 420', path:'M 380 140 L 520 120 L 630 140 L 700 185 L 720 250 L 695 315 L 645 358 L 600 390 L 575 440 L 590 495 L 560 525 L 495 530 L 425 508 L 375 460 L 345 412 L 300 404 L 252 385 L 242 342 L 260 296 L 295 262 L 308 218 L 293 178 L 316 152 L 380 140 Z', sf:[380,140] },
+  'Spielberg':    { vb:'260 100 400 350', path:'M 420 150 L 540 130 L 610 160 L 640 215 L 625 275 L 585 315 L 555 365 L 565 415 L 540 445 L 488 452 L 435 435 L 395 398 L 368 355 L 338 328 L 315 292 L 326 252 L 358 220 L 376 185 L 420 150 Z', sf:[420,150] },
+  'Silverstone':  { vb:'210 110 530 440', path:'M 300 150 L 450 120 L 550 130 L 640 160 L 700 210 L 720 270 L 700 330 L 650 370 L 680 420 L 700 470 L 680 510 L 620 530 L 540 520 L 480 490 L 440 450 L 400 430 L 340 440 L 290 430 L 250 400 L 230 360 L 240 310 L 270 270 L 260 230 L 240 200 L 250 160 L 280 140 L 300 150 Z', sf:[300,150] },
+  'Budapest':     { vb:'240 140 450 400', path:'M 350 170 L 480 150 L 580 165 L 650 205 L 670 265 L 650 325 L 610 365 L 570 395 L 550 440 L 560 490 L 530 520 L 470 525 L 410 505 L 370 465 L 350 420 L 320 400 L 280 380 L 260 340 L 275 295 L 310 260 L 330 220 L 350 170 Z', sf:[350,170] },
+  'Spa':          { vb:'240 150 520 380', path:'M 300 200 L 450 180 L 550 160 L 650 180 L 720 220 L 740 280 L 720 340 L 680 380 L 650 420 L 660 460 L 640 500 L 590 510 L 540 490 L 500 450 L 460 410 L 410 420 L 360 430 L 310 410 L 270 370 L 260 320 L 280 270 L 300 230 L 300 200 Z', sf:[300,200] },
+  'Zandvoort':    { vb:'290 130 380 360', path:'M 400 150 L 520 140 L 600 165 L 640 210 L 630 270 L 600 320 L 570 370 L 580 420 L 560 460 L 510 475 L 460 460 L 420 430 L 390 390 L 360 360 L 330 330 L 310 290 L 320 250 L 350 210 L 380 175 L 400 150 Z', sf:[400,150] },
+  'Monza':        { vb:'260 130 480 360', path:'M 350 150 L 550 140 L 650 160 L 700 200 L 720 260 L 700 320 L 650 360 L 580 380 L 520 370 L 480 340 L 460 380 L 470 430 L 440 460 L 400 465 L 360 450 L 330 420 L 320 380 L 340 340 L 380 310 L 390 270 L 360 240 L 310 230 L 280 200 L 290 160 L 320 145 L 350 150 Z', sf:[350,150] },
+  'Baku':         { vb:'245 120 500 410', path:'M 350 150 L 520 130 L 630 145 L 700 185 L 720 245 L 700 305 L 660 340 L 620 365 L 600 410 L 620 460 L 600 500 L 545 510 L 490 495 L 450 460 L 420 415 L 380 405 L 330 415 L 285 395 L 265 350 L 280 300 L 310 265 L 320 220 L 305 185 L 320 155 L 350 150 Z', sf:[350,150] },
+  'Singapore':    { vb:'248 130 490 410', path:'M 380 160 L 520 140 L 620 160 L 690 200 L 710 260 L 690 320 L 650 355 L 610 385 L 590 430 L 605 480 L 580 515 L 525 520 L 465 500 L 425 460 L 395 415 L 355 405 L 305 390 L 270 355 L 268 305 L 295 265 L 320 230 L 310 190 L 340 163 L 380 160 Z', sf:[380,160] },
+  'Austin':       { vb:'232 130 490 415', path:'M 340 160 L 490 140 L 590 160 L 665 200 L 690 260 L 668 320 L 625 360 L 585 390 L 565 440 L 580 490 L 555 520 L 495 525 L 430 505 L 385 460 L 355 415 L 315 405 L 268 388 L 250 345 L 268 300 L 300 265 L 312 222 L 298 182 L 318 157 L 340 160 Z', sf:[340,160] },
+  'Mexico City':  { vb:'232 132 500 418', path:'M 370 165 L 510 142 L 615 160 L 685 205 L 702 268 L 678 330 L 632 368 L 592 398 L 574 448 L 590 498 L 562 528 L 500 530 L 434 508 L 388 462 L 358 416 L 316 408 L 268 390 L 250 348 L 266 302 L 298 268 L 310 224 L 296 184 L 318 160 L 370 165 Z', sf:[370,165] },
+  'São Paulo':    { vb:'226 125 502 422', path:'M 345 155 L 495 135 L 600 155 L 672 198 L 698 262 L 674 325 L 628 364 L 588 395 L 568 445 L 584 496 L 558 526 L 496 528 L 430 506 L 383 460 L 352 413 L 310 405 L 262 386 L 244 343 L 262 298 L 294 264 L 308 220 L 294 180 L 316 155 L 345 155 Z', sf:[345,155] },
+  'Las Vegas':    { vb:'248 140 510 420', path:'M 340 170 L 520 150 L 640 170 L 710 215 L 728 278 L 705 340 L 660 377 L 618 407 L 598 458 L 613 509 L 586 539 L 522 541 L 455 519 L 408 473 L 376 426 L 333 418 L 284 400 L 266 356 L 283 310 L 315 275 L 328 231 L 313 190 L 334 165 L 340 170 Z', sf:[340,170] },
+  'Lusail':       { vb:'236 125 506 424', path:'M 360 155 L 510 135 L 616 153 L 688 197 L 712 262 L 688 325 L 641 364 L 600 395 L 580 446 L 596 497 L 569 527 L 507 530 L 440 508 L 393 462 L 362 415 L 320 407 L 272 389 L 254 346 L 272 300 L 304 266 L 317 222 L 303 182 L 325 157 L 360 155 Z', sf:[360,155] },
+  'Yas Marina':   { vb:'234 130 510 424', path:'M 360 160 L 510 140 L 615 160 L 686 204 L 710 268 L 686 330 L 640 370 L 598 400 L 578 452 L 594 503 L 567 533 L 504 535 L 437 513 L 390 467 L 360 420 L 318 412 L 270 393 L 252 350 L 270 304 L 302 270 L 315 226 L 300 186 L 322 161 L 360 160 Z', sf:[360,160] },
+  'Barcelona':    { vb:'224 130 510 424', path:'M 350 160 L 500 140 L 605 160 L 677 204 L 700 268 L 676 330 L 630 370 L 588 400 L 568 452 L 584 503 L 557 533 L 494 535 L 427 513 L 380 467 L 350 420 L 308 412 L 260 393 L 242 350 L 260 304 L 292 270 L 305 226 L 290 186 L 312 161 L 350 160 Z', sf:[350,160] },
 }
 
 export function getCircuitImage(name) {
   if (!name) return null
-  const direct = CIRCUIT_IMAGES[name]
-  if (direct) return direct
-  // Fuzzy match
-  const key = Object.keys(CIRCUIT_IMAGES).find(k =>
+  const key = Object.keys(CIRCUITS).find(k =>
+    name === k ||
     name.toLowerCase().includes(k.toLowerCase()) ||
     k.toLowerCase().includes(name.toLowerCase().split(' ')[0])
-  )
-  return key ? CIRCUIT_IMAGES[key] : null
+  ) ?? null
+
+  const c = key ? CIRCUITS[key] : null
+  if (!c) return null
+
+  return makeSvg(c.vb, c.path, SF(...c.sf))
 }
