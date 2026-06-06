@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, Zap, Trophy, Calendar, BarChart2, ArrowRight, Clock, MapPin, ChevronRight } from 'lucide-react'
-import { getMeetings, getLatestSession } from '../lib/openf1'
+import { Activity, Zap, Trophy, Calendar, BarChart2, ArrowRight, Clock, MapPin, ChevronRight, CheckSquare, Users2 } from 'lucide-react'
+import { getMeetings, getLatestSession, getBestStandingsSession, getSessionResult, getDrivers, getSessions, flagUrl } from '../lib/openf1'
 import { format, formatDistanceToNow, isPast, isFuture, parseISO } from 'date-fns'
 import styles from './Home.module.css'
 
@@ -24,28 +24,65 @@ function Countdown({ target }) {
 }
 
 const FEATURES = [
-  { icon: Activity, title: 'Live Timing',    desc: 'Real-time positions, lap times, sector splits and gaps. Updated every few seconds during sessions.',    to: '/live',      pro: false },
-  { icon: Trophy,   title: 'Standings',      desc: 'Live driver and constructor championship standings, updated after every race weekend.',                 to: '/standings', pro: false },
-  { icon: BarChart2,title: 'Analytics',      desc: 'Lap charts, stint breakdowns, tyre degradation and head-to-head driver comparison tools.',             to: '/analytics', pro: true  },
-  { icon: Calendar, title: 'Race Calendar',  desc: 'Full 2026 season calendar with session times, circuit info and live countdowns.',                       to: '/calendar',  pro: false },
+  { icon: Activity,     title: 'Live Timing',    desc: 'Real-time positions, lap times, sector splits and gaps. Updated every few seconds during sessions.',    to: '/live',      pro: false },
+  { icon: Trophy,       title: 'Standings',      desc: 'Live driver and constructor championship standings, updated after every race weekend.',                 to: '/standings', pro: false },
+  { icon: CheckSquare,  title: 'Race Results',   desc: 'Full finishing orders, points hauls, tyre strategies and fastest lap for every completed race.',        to: '/results',   pro: false },
+  { icon: Users2,       title: 'Drivers',        desc: 'All 2026 season drivers with championship stats, team colours and headshots.',                          to: '/drivers',   pro: false },
+  { icon: BarChart2,    title: 'Analytics',      desc: 'Lap charts, stint breakdowns, tyre degradation and head-to-head driver comparison tools.',             to: '/analytics', pro: true  },
+  { icon: Calendar,     title: 'Race Calendar',  desc: 'Full 2026 season calendar with session times, circuit info and live countdowns.',                       to: '/calendar',  pro: false },
 ]
 
 export default function Home() {
-  const [nextRace, setNextRace] = useState(null)
-  const [session,  setSession]  = useState(null)
-  const [loading,  setLoading]  = useState(true)
+  const [nextRace,    setNextRace]    = useState(null)
+  const [session,     setSession]     = useState(null)
+  const [lastRace,    setLastRace]    = useState(null)   // { meeting, top3: [{name, team, colour}] }
+  const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
-    Promise.all([getMeetings(2026), getLatestSession()])
-      .then(([meetings, sess]) => {
+    async function load() {
+      try {
+        const [meetings, sess] = await Promise.all([getMeetings(2026), getLatestSession()])
         const upcoming = meetings
           .filter(m => !m.meeting_name?.toLowerCase().includes('testing') && isFuture(parseISO(m.date_start)))
           .sort((a, b) => new Date(a.date_start) - new Date(b.date_start))
         setNextRace(upcoming[0] ?? null)
         setSession(sess)
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+
+        // Last completed race
+        const past = meetings
+          .filter(m => !m.meeting_name?.toLowerCase().includes('testing') && isPast(parseISO(m.date_end ?? m.date_start)))
+          .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+        const lastMeeting = past[0]
+        if (lastMeeting) {
+          // Get sessions for this meeting
+          const allSessions = await getSessions({ year: 2026 }).catch(() => [])
+          const raceSess = allSessions.find(s => s.meeting_key === lastMeeting.meeting_key && s.session_name === 'Race')
+          if (raceSess) {
+            const [result, drvList] = await Promise.all([
+              getSessionResult(raceSess.session_key).catch(() => null),
+              getDrivers(raceSess.session_key).catch(() => []),
+            ])
+            if (result?.length) {
+              const drvMap = {}
+              for (const d of drvList) drvMap[d.driver_number] = d
+              const top3 = result
+                .sort((a,b) => a.position - b.position)
+                .slice(0, 3)
+                .map(r => {
+                  const d = drvMap[r.driver_number] ?? {}
+                  return { name: d.name_acronym ?? `#${r.driver_number}`, fullName: d.full_name, team: d.team_name, colour: d.team_colour ?? '555555', pts: r.points }
+                })
+              setLastRace({ meeting: lastMeeting, top3 })
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [])
 
   return (
@@ -109,6 +146,32 @@ export default function Home() {
             <span className={styles.sessionMeeting}>{session.meeting_name}</span>
             <Link to="/live" className={styles.sessionCta}>
               View live timing <ArrowRight size={13} />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Last race result ── */}
+      {lastRace && (
+        <div className={styles.lastRaceWrap}>
+          <div className={styles.lastRaceInner}>
+            <div className={styles.lastRaceHd}>
+              <span className={styles.lastRaceLabel}>Last Race Result</span>
+              <span className={styles.lastRaceName}>{lastRace.meeting.meeting_name}</span>
+              <span className={styles.lastRaceMeta}>{format(parseISO(lastRace.meeting.date_start), 'd MMM yyyy')}</span>
+            </div>
+            <div className={styles.podium}>
+              {lastRace.top3.map((d, i) => (
+                <div key={i} className={styles.podiumDriver} style={{ '--col': `#${d.colour}` }}>
+                  <div className={styles.podiumPos}>{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</div>
+                  <div className={styles.podiumAcro} style={{ color: `#${d.colour}` }}>{d.name}</div>
+                  <div className={styles.podiumTeam}>{d.team}</div>
+                  {d.pts > 0 && <div className={styles.podiumPts}>{d.pts} pts</div>}
+                </div>
+              ))}
+            </div>
+            <Link to="/results" className={styles.lastRaceLink}>
+              Full results <ArrowRight size={13} />
             </Link>
           </div>
         </div>

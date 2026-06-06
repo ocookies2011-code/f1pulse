@@ -1,0 +1,154 @@
+.list { display: flex; flex-direction: column; gap: 12px; }
+
+/* Card */
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--border-bright); }
+.latest { border-color: rgba(225,6,0,0.3); }
+
+.cardHd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.cardHd:hover { background: rgba(255,255,255,0.02); }
+
+.cardLeft { display: flex; align-items: center; gap: 12px; }
+
+.roundBadge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem; font-weight: 700;
+  color: var(--text-3);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.flagImg { width: 28px; height: 20px; object-fit: cover; border-radius: 2px; }
+
+.meetingName { font-weight: 700; font-size: 0.95rem; }
+.meetingMeta { font-size: 0.75rem; color: var(--text-2); margin-top: 2px; display: flex; align-items: center; gap: 8px; }
+
+.latestBadge {
+  background: rgba(225,6,0,0.12);
+  border: 1px solid rgba(225,6,0,0.3);
+  color: var(--red);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+}
+
+.chevron { color: var(--text-3); display: flex; }
+
+/* Card body */
+.cardBody { border-top: 1px solid var(--border); }
+
+.sessionTabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.sTab {
+  padding: 10px 18px;
+  font-size: 0.8rem; font-weight: 600;
+  color: var(--text-2);
+  border-bottom: 2px solid transparent;
+  transition: all 0.12s;
+  letter-spacing: 0.02em;
+}
+.sTab:hover { color: var(--text); }
+.sTabActive { color: var(--red); border-bottom-color: var(--red); }
+
+/* Result table */
+.resultLoading { display: flex; justify-content: center; padding: 40px; }
+.resultError {
+  display: flex; align-items: center; gap: 8px;
+  padding: 24px 20px;
+  color: var(--text-2); font-size: 0.85rem;
+}
+
+.resultTable { overflow-x: auto; }
+.resultTable table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+
+.resultTable th {
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--text-3); text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.thPos    { width: 54px; }
+.thDriver { min-width: 160px; }
+.thTeam   { min-width: 130px; }
+.thStrats { width: 120px; }
+.thTime   { min-width: 110px; }
+.thPts    { width: 54px; text-align: right; padding-right: 18px !important; }
+
+.resultRow { transition: background 0.1s; }
+.resultRow:hover { background: rgba(255,255,255,0.025); }
+.resultRow td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+.fastestRow { background: rgba(180,92,244,0.04); }
+
+/* Position */
+.pos { display: flex; align-items: center; gap: 5px; font-weight: 700; font-size: 0.9rem; }
+.medal { font-size: 8px; }
+.podium { color: var(--text); }
+
+/* Driver */
+.driver { display: flex; align-items: center; gap: 8px; }
+.driverBar { width: 3px; height: 32px; border-radius: 2px; flex-shrink: 0; }
+.num { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; opacity: 0.85; }
+.driverName { font-weight: 600; font-size: 0.85rem; }
+.driverAcro { font-size: 0.7rem; color: var(--text-2); margin-top: 1px; }
+
+/* Team */
+.team { color: var(--text-2); font-size: 0.82rem; }
+
+/* Tyres */
+.strats { display: flex; gap: 4px; flex-wrap: wrap; }
+.tyre {
+  font-family: var(--font-mono);
+  font-size: 0.68rem; font-weight: 800;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 1px 5px;
+  opacity: 0.9;
+}
+
+/* Time */
+.time { font-size: 0.8rem; }
+.flBadge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(180,92,244,0.15);
+  border: 1px solid rgba(180,92,244,0.4);
+  color: var(--purple);
+  border-radius: 3px; padding: 1px 5px;
+  font-size: 0.65rem; font-weight: 700;
+  margin-right: 6px;
+}
+.dnf { color: var(--text-3); font-size: 0.75rem; }
+
+/* Points */
+.pts { text-align: right; padding-right: 18px !important; }
+.ptsVal { color: var(--gold); font-weight: 700; }
+
+/* No data */
+.noData { padding: 30px; text-align: center; color: var(--text-3); font-size: 0.85rem; }
+.errorMsg {
+  display: flex; align-items: center; gap: 8px;
+  padding: 24px; color: var(--text-2); font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .thTeam, .team, .thStrats, .strats { display: none; }
+}

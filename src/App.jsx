@@ -12,6 +12,8 @@ import Premium from './pages/Premium'
 import Auth from './pages/Auth'
 import Replay from './pages/Replay'
 import TrackMap from './pages/TrackMap'
+import Results from './pages/Results'
+import Drivers from './pages/Drivers'
 import './styles/global.css'
 
 export default function App() {
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="/teams/:name"   element={<TeamProfile />} />
           <Route path="/trackmap"      element={<TrackMap />} />
           <Route path="/replay"        element={<Replay />} />
+          <Route path="/results"       element={<Results />} />
+          <Route path="/drivers"       element={<Drivers />} />
           <Route path="/premium"       element={<Premium />} />
           <Route path="/login"         element={<Auth />} />
           <Route path="/signup"        element={<Auth />} />

@@ -191,3 +191,46 @@
   .statsInner { grid-template-columns: 1fr 1fr; }
   .h1 { font-size: 2.2rem; }
 }
+
+/* ── Last Race Result Panel ── */
+.lastRaceWrap {
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.lastRaceInner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.lastRaceHd { display: flex; flex-direction: column; gap: 2px; min-width: 160px; }
+.lastRaceLabel {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-3);
+}
+.lastRaceName { font-weight: 700; font-size: 0.95rem; }
+.lastRaceMeta { font-size: 0.75rem; color: var(--text-2); }
+
+.podium { display: flex; gap: 24px; flex: 1; }
+.podiumDriver { display: flex; flex-direction: column; gap: 2px; }
+.podiumPos { font-size: 1rem; }
+.podiumAcro {
+  font-family: var(--font-mono);
+  font-size: 1rem; font-weight: 900;
+}
+.podiumTeam { font-size: 0.72rem; color: var(--text-2); }
+.podiumPts  { font-size: 0.7rem; color: var(--gold); font-weight: 600; }
+
+.lastRaceLink {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.8rem; font-weight: 600;
+  color: var(--red);
+  margin-left: auto;
+  white-space: nowrap;
+  transition: opacity 0.12s;
+}
+.lastRaceLink:hover { opacity: 0.7; }
