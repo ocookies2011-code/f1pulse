@@ -10,6 +10,29 @@ async function getToken() {
   if (tokenFetching) return tokenFetching
   tokenFetching = (async () => {
     try {
+      // Approach 1: Direct client-side token (if VITE_OPENF1_USERNAME set)
+      const directUser = import.meta.env.VITE_OPENF1_USERNAME
+      const directPass = import.meta.env.VITE_OPENF1_PASSWORD
+      if (directUser && directPass) {
+        const params = new URLSearchParams()
+        params.append('username', directUser)
+        params.append('password', directPass)
+        const res = await fetch('https://api.openf1.org/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params,
+        })
+        if (res.ok) {
+          const { access_token, expires_in } = await res.json()
+          if (access_token) {
+            cachedToken = access_token
+            tokenExpiry = Date.now() + parseInt(expires_in ?? '3600') * 1000
+            return access_token
+          }
+        }
+      }
+
+      // Approach 2: Via Supabase edge function proxy
       const url  = import.meta.env.VITE_SUPABASE_URL
       const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
       if (!url || !anon) return null
@@ -18,10 +41,11 @@ async function getToken() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anon}` },
       })
       if (!res.ok) return null
-      const { access_token, expires_in } = await res.json()
-      cachedToken  = access_token
-      tokenExpiry  = Date.now() + parseInt(expires_in ?? '3600') * 1000
-      return access_token
+      const data = await res.json()
+      if (!data.access_token) return null  // edge fn returned error body
+      cachedToken  = data.access_token
+      tokenExpiry  = Date.now() + parseInt(data.expires_in ?? '3600') * 1000
+      return data.access_token
     } catch { return null }
     finally { tokenFetching = null }
   })()
