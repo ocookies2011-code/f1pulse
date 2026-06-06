@@ -134,10 +134,13 @@ export default function Calendar() {
     }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
-  const upcoming = meetings.filter(m => isFuture(parseISO(m.date_start)))
-  const nextRace  = upcoming[0]
-  const past      = meetings.filter(m => isPast(parseISO(m.date_end ?? m.date_start)))
-  const future    = meetings.filter(m => !isPast(parseISO(m.date_end ?? m.date_start)))
+  // A meeting is "past" only when its end date has passed (not just start date)
+  // This ensures Monaco shows as current even after FP1/FP2 have run
+  const past   = meetings.filter(m => isPast(parseISO(m.date_end ?? m.date_start)))
+  const future = meetings.filter(m => !isPast(parseISO(m.date_end ?? m.date_start)))
+  // "Next" = the future meeting whose race session is soonest
+  // Sort by date_start to find the current/next meeting
+  const nextRace = future.sort((a,b) => new Date(a.date_start) - new Date(b.date_start))[0]
 
   const completedCount = past.length
   const remainingCount = future.length
