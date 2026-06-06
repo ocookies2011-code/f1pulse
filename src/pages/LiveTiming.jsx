@@ -552,6 +552,7 @@ export default function LiveTiming() {
             ) : <span className={styles.noSession}>No live session — showing last session</span>}
           </div>
           <div className={styles.topRight}>
+            <button className={`${styles.toggle} ${compact?styles.toggleOn:''}`} onClick={()=>setCompact(v=>!v)} style={{fontSize:'0.62rem',padding:'2px 8px',marginRight:8}}>Compact</button>
             {latestFlag && <RCBadge msg={latestFlag} />}
             {!isPremium && <Link to="/premium" className={styles.proBadge}><Zap size={10} /> Pro</Link>}
             {overtakes.length > 0 && (
