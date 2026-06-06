@@ -158,7 +158,7 @@
 
 /* ── Right panel ── */
 .rightPanel {
-  width: 360px;
+  width: 420px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -184,11 +184,12 @@
 
 .rpMapWrap {
   flex: 1; display: flex; flex-direction: column;
-  background: #060810;
+  background: radial-gradient(ellipse at 45% 40%, #0a1020 0%, #050709 100%);
   overflow: hidden;
   position: relative;
+  min-height: 0;
 }
-.rpMapSvg { flex: 1; width: 100%; display: block; }
+.rpMapSvg { flex: 1; width: 100%; height: 100%; display: block; min-height: 0; }
 .rpMapLink {
   text-align: center; padding: 5px;
   font-size: 0.66rem; color: rgba(225,6,0,0.7);
@@ -260,7 +261,8 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1200px) { .rightPanel { width: 300px; } }
+@media (max-width: 1300px) { .rightPanel { width: 360px; } }
+@media (max-width: 1100px) { .rightPanel { width: 300px; } }
 @media (max-width: 1000px) {
   .mainRow { flex-direction: column; }
   .tableCol { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
@@ -272,4 +274,43 @@
   .weatherInline { display: none; }
   .thSec, .tdSec, .thMini, .tdMini { display: none; }
   .teamShort { display: none; }
+}
+
+/* ── Map toggle controls ── */
+.mapToggles {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+  flex-shrink: 0;
+}
+.mapToggle {
+  padding: 2px 8px;
+  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  background: transparent; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 3px; cursor: pointer; transition: all 0.1s;
+}
+.mapToggle:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.22); }
+.mapToggleOn {
+  color: rgba(255,255,255,0.85) !important;
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.25) !important;
+}
+.mapFullLink {
+  margin-left: auto;
+  font-size: 0.63rem; font-weight: 600;
+  color: rgba(225,6,0,0.7);
+  transition: color 0.1s;
+  white-space: nowrap;
+}
+.mapFullLink:hover { color: #e10600; }
+
+/* ── No data notice overlaid at bottom of map ── */
+.mapNoData {
+  position: absolute; bottom: 8px; left: 0; right: 0;
+  text-align: center;
+  font-size: 0.65rem; color: rgba(255,255,255,0.18);
+  font-family: var(--font-mono);
+  pointer-events: none;
 }
