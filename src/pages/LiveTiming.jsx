@@ -378,11 +378,11 @@ export default function LiveTiming() {
 
   const fetchLive = useCallback(async () => {
     if (!mountedRef.current) return
-    // Only show loading spinner on first load (no existing standings)
     try {
-      // Step 1: Get session (fast - cached after first call)
       const sess = await getLatestSession()
+      if (!sess) { console.warn('No session returned from getLatestSession'); }
       const sk = sess?.session_key ?? 'latest'
+      console.log('fetchLive: session', sk, sess?.session_name, sess?.circuit_short_name)
 
       // Step 2: Determine if session is live or completed
       const sessionEnd = sess?.date_end ? new Date(sess.date_end) : null
@@ -444,6 +444,7 @@ export default function LiveTiming() {
       }
 
       if (!mountedRef.current) return
+      console.log('fetchLive: standings count', finalStanding.length, 'session', finalSession?.session_key)
       setSession(finalSession)
       sessionRef.current = finalSession
       setWeather(wthr)
