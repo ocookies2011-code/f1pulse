@@ -160,23 +160,20 @@ export async function getWeather(sk = 'latest') {
 
 // ── Live standings (sequential to avoid 429) ─────────────────────────────────
 export async function buildLiveStandings(session_key = 'latest') {
-  // Fetch sequentially in priority order, with short delays
-  const delay = (ms) => new Promise(r => setTimeout(r, ms))
-
-  const positions = await getPositions(session_key).catch(() => [])
-  await delay(150)
-  const drivers   = await getDrivers(session_key).catch(() => [])
-  await delay(150)
-  const stints    = await getStints(session_key).catch(() => [])
-  await delay(150)
-  const laps      = await getAllLaps(session_key).catch(() => [])
-  await delay(150)
-  const intervals = await getIntervals(session_key).catch(() => [])
-  // pits are lowest priority
-  const pits      = await getPitStops(session_key).catch(() => [])
+  // Fetch all in parallel - much faster than sequential
+  const [positions, drivers, stints, laps, pits] = await Promise.all([
+    getPositions(session_key).catch(() => []),
+    getDrivers(session_key).catch(() => []),
+    getStints(session_key).catch(() => []),
+    getAllLaps(session_key).catch(() => []),
+    getPitStops(session_key).catch(() => []),
+  ])
+  // intervals only for races - fetch separately
+  let intervals = []
+  try { intervals = await getIntervals(session_key) || [] } catch {}
 
   const posMap = {}
-  for (const p of positions)
+  for (const p of (positions || []))
     if (!posMap[p.driver_number] || p.date > posMap[p.driver_number].date)
       posMap[p.driver_number] = p
 
@@ -209,7 +206,16 @@ export async function buildLiveStandings(session_key = 'latest') {
     }
   }
 
-  return Object.values(posMap).sort((a, b) => a.position - b.position).map(p => {
+  // If no position data, build from lap data or driver list
+  if (Object.keys(posMap).length === 0) {
+    // Use drivers list or lap data to populate posMap
+    const driverNums = drivers?.length
+      ? drivers.map(d => d.driver_number)
+      : [...new Set((laps || []).map(l => l.driver_number))]
+    driverNums.forEach((dn, i) => { posMap[dn] = { driver_number: dn, position: i + 1 } })
+  }
+
+  return Object.values(posMap).sort((a, b) => (a.position||99) - (b.position||99)).map(p => {
     const drv    = drvMap[p.driver_number] ?? {}
     const stint  = stintMap[p.driver_number]
     const dl     = lapMap[p.driver_number] ?? []
