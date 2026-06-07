@@ -247,15 +247,15 @@ function RightPanel({ session, standings, rc, radio, isPremium }) {
 
   // ── Fetch live car positions ──────────────────────────────────────────────
   const fetchPos = useCallback(async () => {
-    if (!session?.session_key) return
+    if (!session?.session_key || !isPremium) return  // Pro only - saves 22 errors for free users
     try {
-      // Route through proxy - handles auth server-side, no token fetch needed
       const supaUrl = import.meta.env.VITE_SUPABASE_URL
-      const proxyBase = supaUrl ? `${supaUrl}/functions/v1/openf1-proxy/v1` : 'https://api.openf1.org/v1'
+      const proxyBase = supaUrl ? `${supaUrl}/functions/v1/openf1-proxy/v1` : null
+      if (!proxyBase) return  // No proxy = no live positions
       // Try live positions first (last 8 seconds)
       const now = new Date()
       const from = new Date(now - 8000).toISOString()
-      const liveRes = await fetch(`${proxyBase}/location?session_key=${session.session_key}&date>${from}`)
+      const liveRes = await fetch(`${proxyBase}/location?session_key=${session.session_key}&date%3E${encodeURIComponent(from)}`)
       if (liveRes.ok) {
         const raw = await liveRes.json()
         if (raw?.length) {
