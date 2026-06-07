@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Activity, RefreshCw, CloudRain, Thermometer, Zap, AlertTriangle, Radio, Wind, Gauge, TrendingUp, X } from 'lucide-react'
 import {
   buildLiveStandings, buildHistoricalStandings, getLatestSession, getWeather, getRaceControl,
-  getBestStandingsSession, getSessions, getChampionshipDrivers, getChampionshipTeams,
+  getBestStandingsSession, getChampionshipDrivers, getChampionshipTeams,
   getDrivers, getTeamRadio, getOvertakes, getCarData, fmt, fmtGap
 } from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
@@ -247,15 +247,21 @@ function RightPanel({ session, standings, rc, radio, isPremium }) {
 
   // ── Fetch live car positions ──────────────────────────────────────────────
   const fetchPos = useCallback(async () => {
-    if (!session?.session_key || !isPremium) return  // Pro only - saves 22 errors for free users
+    if (!session?.session_key) return
     try {
-      const supaUrl = import.meta.env.VITE_SUPABASE_URL
-      const proxyBase = supaUrl ? `${supaUrl}/functions/v1/openf1-proxy/v1` : null
-      if (!proxyBase) return  // No proxy = no live positions
+      const supaUrl  = import.meta.env.VITE_SUPABASE_URL
+      const supaAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
+      let headers = {}
+      if (supaUrl && supaAnon) {
+        try {
+          const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, { method:'POST', headers:{ Authorization:`Bearer ${supaAnon}` } })
+          if (tokenRes.ok) { const { access_token } = await tokenRes.json(); if (access_token) headers.Authorization = `Bearer ${access_token}` }
+        } catch {}
+      }
       // Try live positions first (last 8 seconds)
       const now = new Date()
       const from = new Date(now - 8000).toISOString()
-      const liveRes = await fetch(`${proxyBase}/location?session_key=${session.session_key}&date%3E${encodeURIComponent(from)}`)
+      const liveRes = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${from}`, { headers })
       if (liveRes.ok) {
         const raw = await liveRes.json()
         if (raw?.length) {
@@ -378,54 +384,33 @@ export default function LiveTiming() {
 
   const fetchLive = useCallback(async () => {
     if (!mountedRef.current) return
+    // Only show loading spinner on first load (no existing standings)
     try {
+      // Step 1: Get session (fast - cached after first call)
       const sess = await getLatestSession()
-      if (!sess) { console.warn('No session returned from getLatestSession'); }
       const sk = sess?.session_key ?? 'latest'
-      console.log('fetchLive: session', sk, sess?.session_name, sess?.circuit_short_name)
 
-      // Step 2: Determine if session is live or completed
-      const sessionEnd = sess?.date_end ? new Date(sess.date_end) : null
-      const isCompleted = sessionEnd && sessionEnd < new Date()
-
-      // Step 3: Fetch weather + RC always; standings based on session state
-      const [wthr, rcData] = await Promise.all([
+      // Step 2: Fetch standings + weather + RC in parallel (not sequential)
+      const [standing, wthr, rcData] = await Promise.all([
+        buildLiveStandings(sk).catch(() => []),
         getWeather(sk).catch(() => null),
         getRaceControl(sk).catch(() => []),
       ])
 
       if (!mountedRef.current) return
 
-      let finalStanding = []
+      // Step 3: If no live standings, try fallback (one attempt only, no chain)
+      let finalStanding = standing ?? []
       let finalSession = sess
 
-      if (isCompleted) {
-        // Session ended - try historical results first (faster, more complete)
-        finalStanding = await buildHistoricalStandings(sk).catch(() => [])
-        // If no session_result data (practice sessions), fall back to lap times
-        if (!finalStanding.length) {
-          finalStanding = await buildLiveStandings(sk).catch(() => [])
+      if (!finalStanding.length) {
+        const bestSess = await getBestStandingsSession(2026).catch(() => null)
+        if (bestSess && mountedRef.current) {
+          finalStanding = await buildHistoricalStandings(bestSess.session_key).catch(() => [])
+          finalSession = bestSess
         }
       } else {
-        // Live or unknown - try live standings
-        finalStanding = await buildLiveStandings(sk).catch(() => [])
-      }
-
-      // Last resort: search recent sessions for any with data
-      if (!finalStanding.length && mountedRef.current) {
-        const allSess = await getSessions({ year: 2026 }).catch(() => [])
-        const now = Date.now()
-        const recent = (allSess ?? [])
-          .filter(s => new Date(s.date_start) < now)
-          .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
-          .slice(0, 8)
-        for (const s of recent) {
-          if (!mountedRef.current) break
-          const hist = await buildHistoricalStandings(s.session_key).catch(() => [])
-          if (hist.length) { finalStanding = hist; finalSession = s; break }
-          const live = await buildLiveStandings(s.session_key).catch(() => [])
-          if (live.length) { finalStanding = live; finalSession = s; break }
-        }
+        finalSession = sess
       }
 
       if (!mountedRef.current) return
@@ -444,7 +429,6 @@ export default function LiveTiming() {
       }
 
       if (!mountedRef.current) return
-      console.log('fetchLive: standings count', finalStanding.length, 'session', finalSession?.session_key)
       setSession(finalSession)
       sessionRef.current = finalSession
       setWeather(wthr)
@@ -510,8 +494,8 @@ export default function LiveTiming() {
     const radioInitTimer = setTimeout(doRadio, 5000)
     const radioTimer = setInterval(doRadio, 20000)
     
-    // Polling: 10s for Pro (proxy rate limits at ~6 req/s), 30s free
-    const ms = isPremium ? 10000 : 30000
+    // Polling: Pro = 5s (fast enough, safe on rate limits), Free = 20s
+    const ms = isPremium ? 5000 : 20000
     intervalRef.current = setInterval(fetchLive, ms)
     
     return () => {
@@ -599,11 +583,7 @@ export default function LiveTiming() {
           ) : error ? (
             <div className={styles.emptyState}><AlertTriangle size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>{error}</p></div>
           ) : standings.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} />
-              <p>Fetching timing data…</p>
-              {session && <p style={{fontSize:'0.75rem',color:'var(--text-3)',marginTop:4}}>{session.session_name} · {session.circuit_short_name}</p>}
-            </div>
+            <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
           ) : (() => {
             const COLS = (
               <colgroup>
