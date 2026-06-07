@@ -390,27 +390,48 @@ export default function LiveTiming() {
       const sess = await getLatestSession()
       const sk = sess?.session_key ?? 'latest'
 
-      // Step 2: Fetch standings + weather + RC in parallel (not sequential)
-      const [standing, wthr, rcData] = await Promise.all([
-        buildLiveStandings(sk).catch(() => []),
+      // Step 2: Determine if session is live or completed
+      const sessionEnd = sess?.date_end ? new Date(sess.date_end) : null
+      const isCompleted = sessionEnd && sessionEnd < new Date()
+
+      // Step 3: Fetch weather + RC always; standings based on session state
+      const [wthr, rcData] = await Promise.all([
         getWeather(sk).catch(() => null),
         getRaceControl(sk).catch(() => []),
       ])
 
       if (!mountedRef.current) return
 
-      // Step 3: If no live standings, try fallback (one attempt only, no chain)
-      let finalStanding = standing ?? []
+      let finalStanding = []
       let finalSession = sess
 
-      if (!finalStanding.length) {
-        const bestSess = await getBestStandingsSession(2026).catch(() => null)
-        if (bestSess && mountedRef.current) {
-          finalStanding = await buildHistoricalStandings(bestSess.session_key).catch(() => [])
-          finalSession = bestSess
+      if (isCompleted) {
+        // Session ended - try historical results first (faster, more complete)
+        finalStanding = await buildHistoricalStandings(sk).catch(() => [])
+        // If no session_result data (practice sessions), fall back to lap times
+        if (!finalStanding.length) {
+          finalStanding = await buildLiveStandings(sk).catch(() => [])
         }
       } else {
-        finalSession = sess
+        // Live or unknown - try live standings
+        finalStanding = await buildLiveStandings(sk).catch(() => [])
+      }
+
+      // Last resort: search recent sessions for any with data
+      if (!finalStanding.length && mountedRef.current) {
+        const allSess = await getSessions({ year: 2026 }).catch(() => [])
+        const now = Date.now()
+        const recent = (allSess ?? [])
+          .filter(s => new Date(s.date_start) < now)
+          .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+          .slice(0, 8)
+        for (const s of recent) {
+          if (!mountedRef.current) break
+          const hist = await buildHistoricalStandings(s.session_key).catch(() => [])
+          if (hist.length) { finalStanding = hist; finalSession = s; break }
+          const live = await buildLiveStandings(s.session_key).catch(() => [])
+          if (live.length) { finalStanding = live; finalSession = s; break }
+        }
       }
 
       if (!mountedRef.current) return
