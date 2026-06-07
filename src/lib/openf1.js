@@ -60,12 +60,26 @@ function _dispatch() {
 }
 
 async function apiFetch(endpoint, params = {}) {
-  const url = new URL(`${BASE}${endpoint}`)
-  Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') url.searchParams.set(k, String(v)) })
-  // Only fetch auth token for live session requests - historical data needs no auth
-  const isLive = params.session_key === 'latest'
-  const token = isLive ? await getToken() : null
-  return new Promise(resolve => { _q.push({ url: url.toString(), headers: token ? { Authorization: `Bearer ${token}` } : {}, resolve }); _dispatch() })
+  // Build direct URL as fallback
+  const directUrl = new URL(`${BASE}${endpoint}`)
+  Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') directUrl.searchParams.set(k, String(v)) })
+
+  // Always try proxy first - it handles auth AND bypasses CORS/allowlist issues
+  // Fall back to direct only if proxy not configured
+  let urlStr = directUrl.toString()
+  let fallbackUrl = null
+  
+  if (PROXY_URL) {
+    const proxyUrl = new URL(`${PROXY_URL}/v1${endpoint}`)
+    Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') proxyUrl.searchParams.set(k, String(v)) })
+    urlStr = proxyUrl.toString()
+    fallbackUrl = directUrl.toString() // direct as fallback
+  }
+
+  return new Promise(resolve => {
+    _q.push({ url: urlStr, headers: {}, resolve, fallbackUrl })
+    _dispatch()
+  })
 }
 
 async function cached(endpoint, params, ttl) {
