@@ -583,7 +583,13 @@ export default function LiveTiming() {
           ) : error ? (
             <div className={styles.emptyState}><AlertTriangle size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>{error}</p></div>
           ) : standings.length === 0 ? (
-            <div className={styles.emptyState}><Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} /><p>Loading last session data…</p></div>
+            <div className={styles.emptyState}>
+              <Activity size={28} style={{color:'var(--text-3)',marginBottom:8}} />
+              <p>Fetching timing data…</p>
+              <p style={{fontSize:'0.7rem',color:'var(--text-3)',marginTop:4}}>
+                {session ? `${session.session_name} · ${session.circuit_short_name} · sk:${session.session_key}` : 'No session found'}
+              </p>
+            </div>
           ) : (() => {
             const COLS = (
               <colgroup>
