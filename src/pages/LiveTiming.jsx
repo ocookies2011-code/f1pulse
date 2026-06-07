@@ -247,22 +247,8 @@ function RightPanel({ session, standings, rc, radio, isPremium }) {
 
   // ── Fetch live car positions (Pro only, direct fetch NOT shared queue) ──────
   const fetchPos = useCallback(async () => {
-    if (!session?.session_key || !isPremium) return
-    try {
-      const supaUrl = import.meta.env.VITE_SUPABASE_URL
-      if (!supaUrl) return
-      const now = new Date()
-      const from = new Date(now - 8000).toISOString()
-      // Direct fetch - NOT the shared queue, so it can't block timing data
-      const url = `${supaUrl}/functions/v1/openf1-proxy/v1/location?session_key=${session.session_key}&date%3E${encodeURIComponent(from)}`
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
-      if (!res.ok) return
-      const raw = await res.json().catch(() => [])
-      if (!Array.isArray(raw) || !raw.length) return
-      const latest = {}
-      for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
-      setPositions(latest)
-    } catch {}
+    // Location tracking disabled - causes 404 flood
+    return
   }, [session?.session_key, isPremium])
 
   useEffect(() => {
