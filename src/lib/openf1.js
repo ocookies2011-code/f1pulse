@@ -1,28 +1,6 @@
 const BASE = 'https://api.openf1.org/v1'
 
-// Token cache - only re-fetched when within 5 minutes of expiry
-let _token = null, _tokenExp = 0, _tokenProm = null
-async function getToken() {
-  if (_token && Date.now() < _tokenExp - 300_000) return _token
-  if (_tokenProm) return _tokenProm
-  _tokenProm = (async () => {
-    try {
-      const url = import.meta.env.VITE_SUPABASE_URL
-      const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
-      if (!url || !anon) return null
-      const res = await fetch(`${url}/functions/v1/openf1-token`, {
-        method: 'POST', headers: { Authorization: `Bearer ${anon}` },
-        signal: AbortSignal.timeout(8000),
-      })
-      if (!res.ok) return null
-      const { access_token, expires_in } = await res.json()
-      _token = access_token
-      _tokenExp = Date.now() + parseInt(expires_in ?? '3600') * 1000
-      return _token
-    } catch { return null } finally { _tokenProm = null }
-  })()
-  return _tokenProm
-}
+// Token handling removed - all auth done server-side via openf1-proxy edge function
 
 // Response cache
 const _cache = new Map()
