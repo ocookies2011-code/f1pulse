@@ -286,3 +286,5 @@ export async function buildHistoricalStandings(session_key) {
 
 // Legacy compat
 export const getBestStandingsSession = () => null
+
+export function flagUrl(code) { return code ? `https://flagcdn.com/24x18/${code.toLowerCase()}.png` : null }
