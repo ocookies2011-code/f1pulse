@@ -1,11 +1,28 @@
 const BASE = 'https://api.openf1.org/v1'
 
-// Proxy URL - all OpenF1 requests go through Supabase edge function
-// No token management in browser - the edge function handles auth server-side
-const PROXY_URL = (() => {
-  const base = import.meta.env.VITE_SUPABASE_URL
-  return base ? `${base}/functions/v1/openf1-proxy` : null
-})()
+// Token cache - only re-fetched when within 5 minutes of expiry
+let _token = null, _tokenExp = 0, _tokenProm = null
+async function getToken() {
+  if (_token && Date.now() < _tokenExp - 300_000) return _token
+  if (_tokenProm) return _tokenProm
+  _tokenProm = (async () => {
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL
+      const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
+      if (!url || !anon) return null
+      const res = await fetch(`${url}/functions/v1/openf1-token`, {
+        method: 'POST', headers: { Authorization: `Bearer ${anon}` },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!res.ok) return null
+      const { access_token, expires_in } = await res.json()
+      _token = access_token
+      _tokenExp = Date.now() + parseInt(expires_in ?? '3600') * 1000
+      return _token
+    } catch { return null } finally { _tokenProm = null }
+  })()
+  return _tokenProm
+}
 
 // Response cache
 const _cache = new Map()
@@ -15,73 +32,40 @@ function cacheSet(k, data, ttl) { _cache.set(k, { data, exp: Date.now() + ttl })
 // Rate-limited queue: max 3 concurrent, 300ms gap
 const _q = []; let _running = 0
 function _dispatch() {
-  if (_q.length > 15) {
-    const dropped = _q.splice(0, _q.length - 15)
+  // Cap queue at 12 to prevent unbounded growth during live sessions
+  if (_q.length > 12) {
+    // Drop oldest requests (they'll be re-fetched on next poll)
+    const dropped = _q.splice(0, _q.length - 12)
     dropped.forEach(r => r.resolve([]))
   }
   while (_running < 3 && _q.length) {
-    const { url, headers, resolve, fallbackUrl } = _q.shift()
+    const { url, headers, resolve } = _q.shift()
     _running++
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 10000)
+    const timer = setTimeout(() => ctrl.abort(), 8000)
     fetch(url, { headers, signal: ctrl.signal })
       .then(async res => {
         clearTimeout(timer)
         if (res.status === 429) {
-          if (_q.length < 8) setTimeout(() => { _q.unshift({ url, headers, resolve, fallbackUrl }); _dispatch() }, 2000)
+          // Rate limited - back off, don't retry if queue is large
+          if (_q.length < 6) setTimeout(() => { _q.unshift({ url, headers, resolve }); _dispatch() }, 2000)
           else resolve([])
-          return
-        }
-        // If proxy returned error (404/500) and we have a fallback, use it
-        if (!res.ok && fallbackUrl) {
-          const r2 = await fetch(fallbackUrl, { signal: AbortSignal.timeout(8000) }).catch(() => null)
-          resolve(r2?.ok ? await r2.json().catch(() => []) : [])
           return
         }
         resolve(res.ok ? await res.json().catch(() => []) : [])
       })
-      .catch(async () => {
-        clearTimeout(timer)
-        // Network error on proxy - try direct fallback
-        if (fallbackUrl) {
-          const r2 = await fetch(fallbackUrl, { signal: AbortSignal.timeout(8000) }).catch(() => null)
-          resolve(r2?.ok ? await r2.json().catch(() => []) : [])
-        } else {
-          resolve([])
-        }
-      })
+      .catch(() => { clearTimeout(timer); resolve([]) })
       .finally(() => { _running--; setTimeout(_dispatch, 350) })
   }
 }
 
 async function apiFetch(endpoint, params = {}) {
-  // Build direct OpenF1 URL (always works, public data no auth needed)
-  const directUrl = new URL(`${BASE}${endpoint}`)
-  Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') directUrl.searchParams.set(k, String(v)) })
-  const directStr = directUrl.toString()
-
-  // If proxy is configured, use it (adds auth server-side for live data)
-  // Otherwise fall back to direct call
-  let urlStr = directStr
-  let useProxy = false
-  if (PROXY_URL) {
-    try {
-      const proxyUrl = new URL(`${PROXY_URL}/v1${endpoint}`)
-      Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') proxyUrl.searchParams.set(k, String(v)) })
-      urlStr = proxyUrl.toString()
-      useProxy = true
-    } catch { urlStr = directStr }
-  }
-
-  return new Promise(resolve => {
-    _q.push({
-      url: urlStr,
-      headers: {},
-      resolve,
-      fallbackUrl: useProxy ? directStr : null,
-    })
-    _dispatch()
-  })
+  const url = new URL(`${BASE}${endpoint}`)
+  Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') url.searchParams.set(k, String(v)) })
+  // Only fetch auth token for live session requests - historical data needs no auth
+  const isLive = params.session_key === 'latest'
+  const token = isLive ? await getToken() : null
+  return new Promise(resolve => { _q.push({ url: url.toString(), headers: token ? { Authorization: `Bearer ${token}` } : {}, resolve }); _dispatch() })
 }
 
 async function cached(endpoint, params, ttl) {
@@ -94,12 +78,12 @@ async function cached(endpoint, params, ttl) {
 // Endpoints
 export const getMeetings    = (year=2026) => cached('/meetings',            { year },              300_000)
 export const getSessions    = (p={})      => cached('/sessions',            p,                     60_000)
-export const getDrivers     = (sk='latest')=>cached('/drivers',             { session_key: sk },   600_000) // cache 10min
+export const getDrivers     = (sk='latest')=>cached('/drivers',             { session_key: sk },   300_000)
 export const getPositions   = (sk='latest')=>cached('/position',            { session_key: sk },   4_000)
 export const getLaps        = (sk,dn)     => cached('/laps',                { session_key:sk, driver_number:dn }, 8_000)
 export const getAllLaps      = (sk='latest')=>cached('/laps',                { session_key: sk },   8_000)
-export const getStints      = (sk='latest')=>cached('/stints',              { session_key: sk },   30_000)
-export const getPitStops    = (sk='latest')=>cached('/pit',                 { session_key: sk },   30_000)
+export const getStints      = (sk='latest')=>cached('/stints',              { session_key: sk },   15_000)
+export const getPitStops    = (sk='latest')=>cached('/pit',                 { session_key: sk },   15_000)
 export const getIntervals   = (sk='latest')=>cached('/intervals',           { session_key: sk },   4_000)
 export const getRaceControl = (sk='latest')=>cached('/race_control',        { session_key: sk },   8_000)
 export const getTeamRadio   = (sk='latest')=>cached('/team_radio',          { session_key: sk },   20_000)
@@ -145,15 +129,15 @@ export async function buildLiveStandings(session_key='latest') {
     getStints(session_key).catch(()=>[]),
     getPitStops(session_key).catch(()=>[]),
   ])
-  // Intervals only valid for race sessions - fetch separately with fallback
+  // intervals only for race sessions (404 for practice/qualifying)
   let intervals = []
-  try { intervals = await getIntervals(session_key) } catch { intervals = [] }
+  try { intervals = await getIntervals(session_key) || [] } catch {}
   const posMap={},drvMap={},stintMap={},lapMap={},intMap={},pitMap={}
   for(const p of positions??[]) if(!posMap[p.driver_number]||p.date>posMap[p.driver_number].date) posMap[p.driver_number]=p
   for(const d of drivers??[]) drvMap[d.driver_number]=d
   for(const s of stints??[]) if(!stintMap[s.driver_number]||s.stint_number>stintMap[s.driver_number].stint_number) stintMap[s.driver_number]=s
   for(const l of laps??[]) { if(!lapMap[l.driver_number]) lapMap[l.driver_number]=[]; lapMap[l.driver_number].push(l) }
-  for(const i of (intervals??[])) intMap[i.driver_number]=i
+  for(const i of intervals??[]) intMap[i.driver_number]=i
   for(const p of pits??[]) pitMap[p.driver_number]=(pitMap[p.driver_number]??0)+1
 
   let globalBest=null; const bestS=[null,null,null]
