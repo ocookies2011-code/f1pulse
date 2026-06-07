@@ -571,6 +571,7 @@ export default function LiveTiming() {
               </p>
             </div>
           ) : (() => {
+            try {
             const COLS = (
               <colgroup>
                 <col style={{width:28}}/>
@@ -803,7 +804,7 @@ export default function LiveTiming() {
                     )
                   })}
                 </div>
-          })()}
+          } catch(e) { console.error('Table render error:', e); return null } })()}
         </div>
       </div>
 
