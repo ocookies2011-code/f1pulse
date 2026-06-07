@@ -1,6 +1,8 @@
 const BASE = 'https://api.openf1.org/v1'
 
-// Token handling removed - all auth done server-side via openf1-proxy edge function
+// Proxy URL for authenticated OpenF1 calls (live sessions)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const PROXY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/openf1-proxy` : null
 
 // Response cache
 const _cache = new Map()
