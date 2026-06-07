@@ -245,45 +245,25 @@ function RightPanel({ session, standings, rc, radio, isPremium }) {
   // radio state now in parent LiveTiming
   const pollRef = useRef(null)
 
-  // ── Fetch live car positions ──────────────────────────────────────────────
+  // ── Fetch live car positions (Pro only, direct fetch NOT shared queue) ──────
   const fetchPos = useCallback(async () => {
-    if (!session?.session_key) return
+    if (!session?.session_key || !isPremium) return
     try {
-      const supaUrl  = import.meta.env.VITE_SUPABASE_URL
-      const supaAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
-      let headers = {}
-      if (supaUrl && supaAnon) {
-        try {
-          const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, { method:'POST', headers:{ Authorization:`Bearer ${supaAnon}` } })
-          if (tokenRes.ok) { const { access_token } = await tokenRes.json(); if (access_token) headers.Authorization = `Bearer ${access_token}` }
-        } catch {}
-      }
-      // Try live positions first (last 8 seconds)
+      const supaUrl = import.meta.env.VITE_SUPABASE_URL
+      if (!supaUrl) return
       const now = new Date()
       const from = new Date(now - 8000).toISOString()
-      const liveRes = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${from}`, { headers })
-      if (liveRes.ok) {
-        const raw = await liveRes.json()
-        if (raw?.length) {
-          const latest = {}
-          for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
-          setPositions(latest)
-          return
-        }
-      }
-      // No live data — try fetching last known positions for this session (last 60s window)
-      const fromWide = new Date(now - 60000).toISOString()
-      const histRes = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${fromWide}`, { headers })
-      if (histRes.ok) {
-        const raw = await histRes.json()
-        if (raw?.length) {
-          const latest = {}
-          for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
-          setPositions(latest)
-        }
-      }
+      // Direct fetch - NOT the shared queue, so it can't block timing data
+      const url = `${supaUrl}/functions/v1/openf1-proxy/v1/location?session_key=${session.session_key}&date%3E${encodeURIComponent(from)}`
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
+      if (!res.ok) return
+      const raw = await res.json().catch(() => [])
+      if (!Array.isArray(raw) || !raw.length) return
+      const latest = {}
+      for (const p of raw) if (!latest[p.driver_number] || p.date > latest[p.driver_number].date) latest[p.driver_number] = p
+      setPositions(latest)
     } catch {}
-  }, [session])
+  }, [session?.session_key, isPremium])
 
   useEffect(() => {
     if (!session?.session_key) return
