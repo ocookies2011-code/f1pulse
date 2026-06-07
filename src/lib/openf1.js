@@ -32,7 +32,11 @@ function _dispatch() {
           else resolve([])
           return
         }
-        resolve(res.ok ? await res.json().catch(() => []) : [])
+        (async () => {
+          if (!res.ok) { resolve([]); return }
+          const d = await res.json().catch(() => [])
+          resolve(Array.isArray(d) ? d : [])
+        })()
       })
       .catch(() => resolve([]))
       .finally(() => { _running--; setTimeout(_dispatch, 350) })
