@@ -685,7 +685,7 @@ export default function LiveTiming() {
                           const SCOL = ['#3671C6','#E8002D','#FF8000'][si]
                           const val = d.sectors?.[si]
                           const isSB = val && d.best_sectors?.[si] && Math.abs(val - d.best_sectors[si]) < 0.001
-                          const isSessionBest = val && val === Math.min(...standings.map(x=>x.sectors?.[si]).filter(Boolean))
+                          const sectorVals = standings.map(x=>x.sectors?.[si]).filter(Boolean); const isSessionBest = val && sectorVals.length > 0 && val === sectorVals.reduce((a,b)=>a<b?a:b)
                           return (
                             <td key={`ls${si}`} className={`mono ${styles.tdSecCell} ${styles.hideMobile}`}>
                               {val
