@@ -171,6 +171,8 @@ export async function buildLiveStandings(session_key = 'latest') {
   // intervals only for races - fetch separately
   let intervals = []
   try { intervals = await getIntervals(session_key) || [] } catch {}
+  
+  console.log('buildLiveStandings sk=' + session_key + ' pos=' + (positions?.length||0) + ' laps=' + (laps?.length||0) + ' drivers=' + (drivers?.length||0))
 
   const posMap = {}
   for (const p of (positions || []))
