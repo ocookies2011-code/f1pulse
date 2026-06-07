@@ -249,19 +249,13 @@ function RightPanel({ session, standings, rc, radio, isPremium }) {
   const fetchPos = useCallback(async () => {
     if (!session?.session_key) return
     try {
-      const supaUrl  = import.meta.env.VITE_SUPABASE_URL
-      const supaAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
-      let headers = {}
-      if (supaUrl && supaAnon) {
-        try {
-          const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, { method:'POST', headers:{ Authorization:`Bearer ${supaAnon}` } })
-          if (tokenRes.ok) { const { access_token } = await tokenRes.json(); if (access_token) headers.Authorization = `Bearer ${access_token}` }
-        } catch {}
-      }
+      // Route through proxy - handles auth server-side, no token fetch needed
+      const supaUrl = import.meta.env.VITE_SUPABASE_URL
+      const proxyBase = supaUrl ? `${supaUrl}/functions/v1/openf1-proxy/v1` : 'https://api.openf1.org/v1'
       // Try live positions first (last 8 seconds)
       const now = new Date()
       const from = new Date(now - 8000).toISOString()
-      const liveRes = await fetch(`https://api.openf1.org/v1/location?session_key=${session.session_key}&date>${from}`, { headers })
+      const liveRes = await fetch(`${proxyBase}/location?session_key=${session.session_key}&date>${from}`)
       if (liveRes.ok) {
         const raw = await liveRes.json()
         if (raw?.length) {

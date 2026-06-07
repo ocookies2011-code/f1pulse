@@ -256,18 +256,10 @@ export default function TrackMap() {
       // Get latest location for each driver (last few seconds of data)
       const now  = new Date()
       const from = new Date(now - 10000).toISOString()
-      const url  = `https://api.openf1.org/v1/location?session_key=${sk}&date>${from}`
-      const supaUrl  = import.meta.env.VITE_SUPABASE_URL
-      const supaAnon = import.meta.env.VITE_SUPABASE_ANON_KEY
-      // Route through our edge function token
-      const tokenRes = await fetch(`${supaUrl}/functions/v1/openf1-token`, {
-        method: 'POST', headers: { Authorization: `Bearer ${supaAnon}` }
-      })
+      const url  = `${proxyBase}/location?session_key=${sk}&date>${from}`
+      const supaUrl = import.meta.env.VITE_SUPABASE_URL
+      const proxyBase = supaUrl ? `${supaUrl}/functions/v1/openf1-proxy/v1` : 'https://api.openf1.org/v1'
       const headers = {}
-      if (tokenRes.ok) {
-        const { access_token } = await tokenRes.json()
-        if (access_token) headers.Authorization = `Bearer ${access_token}`
-      }
       const res  = await fetch(url, { headers })
       if (!res.ok) return
       const raw  = await res.json()
