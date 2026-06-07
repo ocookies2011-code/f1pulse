@@ -32,8 +32,8 @@ function cacheSet(k, data, ttl) { _cache.set(k, { data, exp: Date.now() + ttl })
 // Rate-limited queue: max 3 concurrent, 300ms gap
 const _q = []; let _running = 0
 function _dispatch() {
-  if (_q.length > 15) { _q.splice(0, _q.length - 15).forEach(r => r.resolve([])) }
-  while (_running < 3 && _q.length) {
+  if (_q.length > 20) { _q.splice(0, _q.length - 20).forEach(r => r.resolve([])) }
+  while (_running < 5 && _q.length) {
     const { url, fallback, resolve } = _q.shift()
     _running++
     fetch(url, { signal: AbortSignal.timeout(10000) })
