@@ -14,24 +14,30 @@ export const CIRCUIT_IMAGES = {
   'Imola':         `${FT}/imola.png`,
   'Monaco':        `${FT}/monaco.png`,
   'Montréal':      `${FT}/villeneuve.png`,
+  'Montreal':      `${FT}/villeneuve.png`,
   'Spielberg':     `${FT}/spielberg.png`,
   // Round 11-15
   'Silverstone':   `${FT}/silverstone.png`,
   'Budapest':      `${FT}/budapest.png`,
-  'Spa':           `${FT}/spa.png`,
-  'Zandvoort':     `${FT}/zandvoort.png`,
-  'Monza':         `${FT}/monza.png`,
+  'Hungaroring':   `${FT}/budapest.png`,
+  'Spa':              `${FT}/spa.png`,
+  'Spa-Francorchamps':`${FT}/spa.png`,
+  'Zandvoort':        `${FT}/zandvoort.png`,
+  'Monza':            `${FT}/monza.png`,
   // Round 16-20
   'Baku':          `${FT}/baku.png`,
   'Singapore':     `${FT}/singapore.png`,
   'Austin':        `${FT}/austin.png`,
   'Mexico City':   `${FT}/mexico.png`,
   'São Paulo':     `${FT}/sao_paulo.png`,
+  'Interlagos':    `${FT}/sao_paulo.png`,
   // Round 21-24
   'Las Vegas':     `${FT}/las_vegas.png`,
   'Lusail':        `${FT}/losail.png`,
   'Yas Marina':    `${FT}/yas_marina.png`,
+  'Marina Bay':    `${FT}/singapore.png`,
   'Barcelona':     `${FT}/barcelona.png`,
+  'Catalunya':     `${FT}/barcelona.png`,
 }
 
 // Broader matching for API circuit names that may not match exactly

@@ -7,6 +7,7 @@ import {
 } from '../lib/openf1'
 import { useAuth } from '../hooks/useAuth'
 import styles from './LiveTiming.module.css'
+import { getCircuitImage } from '../lib/circuitImages'
 
 // ── Tyre chip ─────────────────────────────────────────────────────────────────
 const TYRE_COLOR = { SOFT:'#e8002d', MEDIUM:'#ffd700', HARD:'#f0f0f0', INTER:'#39b54a', WET:'#0067ff' }
@@ -388,14 +389,13 @@ export default function LiveTiming() {
 // ── Track map component ────────────────────────────────────────────────────────
 function TrackMap({ session }) {
   const [imgErr, setImgErr] = useState(false)
-  const name = session?.circuit_short_name ?? session?.country_name ?? ''
-  const slug = name?.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') ?? ''
-  const imgUrl = slug ? `https://formula-timer.com/circuits/${slug}.png` : null
+  const name = session?.circuit_short_name ?? ''
+  const imgUrl = getCircuitImage(name)
 
   return (
     <div style={{flex:1,position:'relative',minHeight:0,overflow:'hidden'}}>
       {imgUrl && !imgErr
-        ? <img src={imgUrl} alt={name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',padding:10}} onError={() => setImgErr(true)} />
+        ? <img src={imgUrl} alt={name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',padding:10,opacity:0.9}} onError={() => setImgErr(true)} />
         : <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-3)',fontSize:'0.75rem'}}>No circuit data</div>
       }
     </div>
